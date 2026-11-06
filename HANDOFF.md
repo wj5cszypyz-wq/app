@@ -1,6 +1,6 @@
 # Larder — project hand-off
 
-Read this first in any new session. Last updated 2026-11-05.
+Read this first in any new session. Last updated 2026-11-06.
 
 ## The business
 - **Who:** the owner is building a local competitor to **BlueCart** (bluecart.com) and **Choco** (choco.com/us).
@@ -22,7 +22,7 @@ Read this first in any new session. Last updated 2026-11-05.
 - Security matters a lot: no secrets in the browser, server-side sessions, nothing sensitive in localStorage.
 
 ## Current state (done and verified)
-- Next.js 15 + TypeScript + Prisma (SQLite locally; Postgres for production). Code is in this folder.
+- Next.js 15 + TypeScript + Prisma (SQLite locally; Postgres for production). Code is at the repo root.
 - Supplier: Today board (live every 5 s), All orders, order detail with New→Packing→Ready→Delivered,
   printable invoice + packing slip, Products (inline price, stock switch), Customers (logins, per-customer
   prices), QuickBooks settings.
@@ -42,13 +42,16 @@ Read this first in any new session. Last updated 2026-11-05.
 - `.env` holds a generated `SESSION_SECRET`. **Never upload `.env` or `dev.db`.**
 
 ## GitHub
-- Repo: https://github.com/wj5cszypyz-wq/app (private or not yet visible without sign-in).
-- A clean, secret-free copy for upload is in `larder-for-github/` (scanned: no keys, passwords or database).
-- The owner says they connected GitHub; it did not show up as a connector in the previous session.
+- Repo: https://github.com/wj5cszypyz-wq/app. Code is on `main`, at the repo root (done 2026-11-06).
+- `.gitignore` keeps out `node_modules`, `.next`, `.env`, `.env.local`, `*.db` and build files.
+- `.env.example` lists every setting. To start fresh: `cp .env.example .env`, put a long random value in
+  `SESSION_SECRET` (`openssl rand -base64 48`), then `npm install` and `npm run setup`.
+- Verified on 2026-11-06 in a fresh clone: `npm install` (0 vulnerabilities), 25/25 tests, `tsc` clean,
+  `next build` passes, and every supplier and restaurant page loads with no errors.
+- Demo buttons only appear with `npm run dev`. `npm start` (production) hides them on purpose.
 
 ## Next steps (in order)
-1. Push the code to GitHub (connector if available; otherwise git + `gh auth login` after Command Line Tools,
-   or upload `larder-for-github/` on github.com).
+1. ~~Push the code to GitHub~~ — done 2026-11-06.
 2. Connect a free QuickBooks **sandbox** (developer.intuit.com → app → redirect URI
    `http://localhost:3000/api/qbo/callback` → keys into `.env`) and test a real invoice end-to-end.
 3. Before real customers: password reset + change password, Postgres, hosting with HTTPS, Privacy Policy +
