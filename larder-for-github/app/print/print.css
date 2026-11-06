@@ -1,0 +1,37 @@
+/* Paper documents: clean black-on-white, Letter size, prints on any office printer. */
+body:has(.doc-page) { background: #e9ecef; color: #111; }
+body:has(.doc-page)::before { display: none; }
+
+.doc-toolbar { position: sticky; top: 0; z-index: 5; display: flex; justify-content: center; gap: 10px; padding: 12px; background: #fff; border-bottom: 1px solid #e7e2d7; }
+.doc-page { width: 8.5in; min-height: 11in; margin: 24px auto; padding: 0.6in 0.65in; background: #fff; color: #111; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18); font-family: var(--font-body), system-ui, sans-serif; font-size: 11pt; line-height: 1.4; }
+.doc-page .num, .doc-page .mono { font-family: inherit; font-variant-numeric: tabular-nums; }
+.doc-head { display: flex; justify-content: space-between; gap: 24px; padding-bottom: 18px; border-bottom: 2px solid #111; }
+.doc-from b { font-size: 15pt; letter-spacing: -0.01em; }
+.doc-title { text-align: right; }
+.doc-title h1 { font-size: 26pt; letter-spacing: 0.02em; margin: 0; color: #111; }
+.doc-meta { display: grid; grid-template-columns: auto auto; gap: 2px 14px; justify-content: end; margin-top: 8px; font-size: 10pt; }
+.doc-meta dt { color: #666; text-align: right; }
+.doc-meta dd { margin: 0; font-weight: 600; }
+.doc-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 20px 0 22px; }
+.doc-label { font-size: 8pt; letter-spacing: 0.14em; text-transform: uppercase; color: #666; margin-bottom: 4px; }
+.doc-table { width: 100%; border-collapse: collapse; }
+.doc-table th { text-align: left; font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: #555; border-bottom: 1px solid #111; padding: 6px 6px; font-weight: 500; }
+.doc-table td { padding: 8px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
+.doc-table .r { text-align: right; }
+.doc-table .check { width: 18px; height: 18px; border: 1.5px solid #333; border-radius: 3px; display: inline-block; }
+.doc-table .write { display: inline-block; min-width: 60px; border-bottom: 1px solid #999; height: 16px; }
+.doc-total { display: flex; justify-content: flex-end; margin-top: 14px; }
+.doc-total table { min-width: 260px; border-collapse: collapse; }
+.doc-total td { padding: 5px 6px; }
+.doc-total tr.grand td { border-top: 2px solid #111; font-size: 14pt; font-weight: 700; padding-top: 8px; }
+.doc-note { margin-top: 22px; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 10pt; white-space: pre-wrap; }
+.doc-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 48px; font-size: 9pt; color: #555; }
+.doc-sign div { border-top: 1px solid #333; padding-top: 6px; }
+.doc-foot { margin-top: 28px; font-size: 8.5pt; color: #777; text-align: center; }
+
+@page { size: letter; margin: 0; }
+@media print {
+  body:has(.doc-page) { background: #fff; }
+  .doc-toolbar, .toasts { display: none !important; }
+  .doc-page { margin: 0; box-shadow: none; width: auto; min-height: 0; }
+}

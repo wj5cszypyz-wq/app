@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A wholesaler (produce, dairy, meat...). Each supplier connects its own QuickBooks company.
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+
+  // QuickBooks Online connection (tokens are stored encrypted)
+  qboRealmId          String?
+  qboCompanyName      String?
+  qboAccessToken      String?
+  qboRefreshToken     String?
+  qboAccessExpiresAt  DateTime?
+  qboRefreshExpiresAt DateTime?
+  qboIncomeAccountId  String?
+
+  users       User[]
+  restaurants Restaurant[]
+  products    Product[]
+  orders      Order[]
+}
+
+// role: "supplier" (wholesaler staff) or "buyer" (restaurant staff)
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  name         String
+  passwordHash String
+  role         String
+  supplierId   String
+  supplier     Supplier    @relation(fields: [supplierId], references: [id])
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  createdAt    DateTime    @default(now())
+  sessions     Session[]
+}
+
+// Server-side login sessions. The browser only holds a random token; we store its SHA-256 hash,
+// so even a copy of this database can't be used to sign in.
+model Session {
+  id        String   @id // sha256(token)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+// A restaurant that buys from a supplier. Becomes a Customer in QuickBooks.
+model Restaurant {
+  id            String          @id @default(cuid())
+  supplierId    String
+  supplier      Supplier        @relation(fields: [supplierId], references: [id])
+  name          String
+  contactName   String?
+  email         String?
+  phone         String?
+  address       String?
+  qboCustomerId String?
+  createdAt     DateTime        @default(now())
+  users         User[]
+  orders        Order[]
+  prices        CustomerPrice[]
+}
+
+// unit: "case" | "lb" | "each" | "dozen" | "gal"
+model Product {
+  id         String          @id @default(cuid())
+  supplierId String
+  supplier   Supplier        @relation(fields: [supplierId], references: [id])
+  sku        String
+  name       String
+  category   String
+  unit       String
+  packSize   String?
+  priceCents Int
+  inStock    Boolean         @default(true)
+  active     Boolean         @default(true)
+  qboItemId  String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  prices     CustomerPrice[]
+  lines      OrderLine[]
+
+  @@unique([supplierId, sku])
+}
+
+// Per-restaurant price that overrides the product's list price.
+model CustomerPrice {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceCents   Int
+
+  @@unique([restaurantId, productId])
+}
+
+// status: "new" | "packing" | "ready" | "delivered" | "cancelled"
+// qboSyncStatus: "pending" | "synced" | "failed" | "not_connected"
+model Order {
+  id            String      @id @default(cuid())
+  supplierId    String
+  supplier      Supplier    @relation(fields: [supplierId], references: [id])
+  restaurantId  String
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+  number        Int
+  status        String      @default("new")
+  deliveryDate  DateTime?
+  notes         String?
+  subtotalCents Int
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  qboSyncStatus String    @default("pending")
+  qboInvoiceId  String?
+  qboDocNumber  String?
+  qboSyncedAt   DateTime?
+  qboError      String?
+
+  lines OrderLine[]
+
+  @@unique([supplierId, number])
+  @@index([supplierId, createdAt])
+}
+
+// Name/price are copied at order time so old invoices never change.
+model OrderLine {
+  id             String  @id @default(cuid())
+  orderId        String
+  order          Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String
+  product        Product @relation(fields: [productId], references: [id])
+  name           String
+  sku            String
+  unit           String
+  packSize       String?
+  qty            Float
+  unitPriceCents Int
+  lineTotalCents Int
+}
