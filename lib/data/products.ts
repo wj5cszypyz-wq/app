@@ -5,6 +5,7 @@ import { DataError } from "./errors";
 import type { ProductInput } from "../product-input";
 import { isUnitKind, UNIT_KINDS, type UnitKind } from "../units";
 import { ensureCategory } from "./categories";
+import { assertOwnProductPhotos } from "./uploads";
 import { asManager } from "./guard";
 
 export type NewProduct = Required<Pick<ProductInput, "sku" | "name" | "category" | "unitKind" | "unit" | "priceCents">> & ProductInput;
@@ -32,6 +33,7 @@ export async function createProduct(ctx: StoreCtx, input: NewProduct) {
   const { storeId } = asManager(ctx);
   const exists = await db.product.findUnique({ where: { storeId_sku: { storeId, sku: input.sku } } });
   if (exists) throw new DataError(`SKU ${input.sku} is already in your catalog.`);
+  if (input.imageIds) await assertOwnProductPhotos(storeId, input.imageIds);
   await ensureCategory(ctx, input.category, input.categoryEmoji);
   try {
     return await db.product.create({ data: { storeId, ...dbFields(input) } as never });
@@ -53,6 +55,7 @@ export async function updateProduct(ctx: StoreCtx, id: string, patch: ProductPat
     const clash = await db.product.findUnique({ where: { storeId_sku: { storeId, sku: patch.sku } } });
     if (clash) throw new DataError(`SKU ${patch.sku} is already in your catalog.`);
   }
+  if (patch.imageIds) await assertOwnProductPhotos(storeId, patch.imageIds);
   if (patch.category) await ensureCategory(ctx, patch.category, patch.categoryEmoji);
   const result = await db.product.updateMany({ where: { id, storeId }, data: dbFields(patch) as never });
   return result.count === 0 ? null : patch;

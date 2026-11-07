@@ -442,3 +442,11 @@ h3 { font-size: 15px; }
 }
 .store-logo { border-radius: 10px; object-fit: contain; background: var(--surface); border: 1px solid var(--line); flex: none; }
 .store-letter { display: inline-flex; align-items: center; justify-content: center; background: var(--green); color: #fff; font-weight: 700; font-size: 16px; flex: none; }
+.photo-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.photo-thumb, .photo-add { position: relative; width: 92px; height: 92px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-2); flex: none; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; color: var(--muted); font-size: 12px; border-style: dashed; }
+.photo-add span:first-child { font-size: 20px; }
+.photo-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, 0.55); color: #fff; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.photo-remove svg { width: 14px; height: 14px; }
+.photo-cover { position: absolute; left: 4px; bottom: 4px; font-size: 10.5px; padding: 1px 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.9); color: var(--text); }

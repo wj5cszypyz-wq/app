@@ -7,6 +7,7 @@ const env = {
   DEMO_MODE: "",
   QBO_CLIENT_ID: "",
   QBO_CLIENT_SECRET: "",
+  UPLOAD_DIR: "prisma/test-uploads",
 };
 
 export default defineConfig({

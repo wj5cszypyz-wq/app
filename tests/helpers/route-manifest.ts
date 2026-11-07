@@ -1,6 +1,7 @@
 // Every store API route, with the roles allowed to use it. The static guard test fails if a route is missing.
 import type { Role } from "../../lib/scope";
 import type { StoreFixture } from "./fixtures";
+import { imageForm, PNG_1X1 } from "./images";
 
 export type Ids = { order: string; product: string; customer: string; staffUser: string; request: string };
 
@@ -10,6 +11,7 @@ export type RouteCase = {
   path: (ids: Ids) => string;
   params: (ids: Ids) => Record<string, string>;
   body?: (f: StoreFixture) => unknown;
+  form?: () => FormData;
   roles: Role[];
   okStatus: number[];
 };
@@ -30,6 +32,7 @@ export const ROUTES: RouteCase[] = [
   { file: "manage/customers/[id]/invite/route.ts", method: "POST", path: (i) => `manage/customers/${i.customer}/invite`, params: (i) => ({ id: i.customer }), roles: MANAGE, okStatus: [200, 400] },
   { file: "manage/requests/[id]/route.ts", method: "POST", path: (i) => `manage/requests/${i.request}`, params: (i) => ({ id: i.request }), body: () => ({ action: "decline" }), roles: MANAGE, okStatus: [200] },
   { file: "manage/store/route.ts", method: "PATCH", path: () => "manage/store", params: () => ({}), body: () => ({ allowAccountRequests: true }), roles: ["owner"], okStatus: [200] },
+  { file: "manage/uploads/route.ts", method: "POST", path: () => "manage/uploads", params: () => ({}), form: () => imageForm(PNG_1X1), roles: MANAGE, okStatus: [201] },
   { file: "manage/staff/route.ts", method: "POST", path: () => "manage/staff", params: () => ({}), body: () => ({ email: `staff-${++n}@test.local` }), roles: ["owner"], okStatus: [201] },
   { file: "manage/staff/[userId]/route.ts", method: "DELETE", path: (i) => `manage/staff/${i.staffUser}`, params: (i) => ({ userId: i.staffUser }), roles: ["owner"], okStatus: [200] },
   { file: "manage/customers/[id]/prices/route.ts", method: "PUT", path: (i) => `manage/customers/${i.customer}/prices`, params: (i) => ({ id: i.customer }), body: (f) => ({ prices: [{ productId: f.product.id, price: "9.00" }] }), roles: MANAGE, okStatus: [200] },

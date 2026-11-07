@@ -8,6 +8,7 @@ export default function setup() {
   for (const suffix of ["", "-journal"]) {
     rmSync(fileURLToPath(new URL(`../../prisma/test.db${suffix}`, import.meta.url)), { force: true });
   }
+  rmSync(fileURLToPath(new URL("../../prisma/test-uploads", import.meta.url)), { recursive: true, force: true });
   execSync("npx prisma db push --skip-generate", {
     stdio: "pipe",
     env: { ...process.env, DATABASE_URL: "file:./test.db", PRISMA_HIDE_UPDATE_MESSAGE: "1" },

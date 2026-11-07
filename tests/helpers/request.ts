@@ -40,6 +40,7 @@ export type CallOptions = {
   params?: Record<string, string>;
   origin?: string;
   cookies?: Record<string, string>;
+  form?: FormData;
 };
 
 export async function callRoute(handler: RouteHandler, opts: CallOptions): Promise<Response> {
@@ -47,11 +48,11 @@ export async function callRoute(handler: RouteHandler, opts: CallOptions): Promi
   setCookies.clear();
   for (const [k, v] of Object.entries(opts.cookies ?? {})) setCookies.set(k, v);
   const headers = new Headers({ origin: opts.origin ?? "http://localhost" });
-  if (opts.body !== undefined) headers.set("content-type", "application/json");
+  if (opts.body !== undefined && !opts.form) headers.set("content-type", "application/json");
   const req = new Request(new URL(opts.url, "http://localhost"), {
     method: opts.method,
     headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    body: opts.form ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
   });
   return handler(req, { params: Promise.resolve(opts.params ?? {}) });
 }

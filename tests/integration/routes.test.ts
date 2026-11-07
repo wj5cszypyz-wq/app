@@ -42,6 +42,7 @@ async function call(rc: RouteCase, slug: string, ids: Ids, token: string | undef
     token,
     params: { slug, ...rc.params(ids) },
     body: rc.body?.(bodyFrom),
+    form: rc.form?.(),
   });
 }
 
