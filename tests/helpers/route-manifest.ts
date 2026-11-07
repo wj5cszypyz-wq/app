@@ -3,7 +3,7 @@ import type { Role } from "../../lib/scope";
 import type { StoreFixture } from "./fixtures";
 import { imageForm, PNG_1X1 } from "./images";
 
-export type Ids = { order: string; product: string; customer: string; staffUser: string; request: string; batch: string };
+export type Ids = { order: string; product: string; customer: string; staffUser: string; request: string; batch: string; change: string };
 
 export type RouteCase = {
   file: string; // relative to app/api/s/[slug]
@@ -37,6 +37,7 @@ export const ROUTES: RouteCase[] = [
   { file: "manage/qbo/import/route.ts", method: "POST", path: () => "manage/qbo/import", params: () => ({}), body: () => ({ kind: "items", ids: ["1"] }), roles: MANAGE, okStatus: [409] },
   { file: "manage/qbo/import/[id]/undo/route.ts", method: "POST", path: (i) => `manage/qbo/import/${i.batch}/undo`, params: (i) => ({ id: i.batch }), roles: MANAGE, okStatus: [200] },
   { file: "manage/suggest/route.ts", method: "POST", path: () => "manage/suggest", params: () => ({}), body: () => ({ name: "Whole milk" }), roles: MANAGE, okStatus: [200] },
+  { file: "manage/history/[id]/undo/route.ts", method: "POST", path: (i) => `manage/history/${i.change}/undo`, params: (i) => ({ id: i.change }), roles: MANAGE, okStatus: [200, 409] },
   { file: "manage/staff/route.ts", method: "POST", path: () => "manage/staff", params: () => ({}), body: () => ({ email: `staff-${++n}@test.local` }), roles: ["owner"], okStatus: [201] },
   { file: "manage/staff/[userId]/route.ts", method: "DELETE", path: (i) => `manage/staff/${i.staffUser}`, params: (i) => ({ userId: i.staffUser }), roles: ["owner"], okStatus: [200] },
   { file: "manage/customers/[id]/prices/route.ts", method: "PUT", path: (i) => `manage/customers/${i.customer}/prices`, params: (i) => ({ id: i.customer }), body: (f) => ({ prices: [{ productId: f.product.id, price: "9.00" }] }), roles: MANAGE, okStatus: [200] },

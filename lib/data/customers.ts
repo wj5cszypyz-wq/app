@@ -3,6 +3,7 @@ import { db } from "../db";
 import type { StoreCtx } from "../scope";
 import { DataError } from "./errors";
 import { asManager } from "./guard";
+import { recordChange } from "./history";
 import { inviteCustomerLogin } from "./invites";
 
 export async function listCustomers(ctx: StoreCtx) {
@@ -75,13 +76,17 @@ export async function setCustomerPrices(
   removals: string[],
 ) {
   const { storeId } = asManager(ctx);
-  const customer = await db.customer.findFirst({ where: { id: customerId, storeId }, select: { id: true } });
+  const customer = await db.customer.findFirst({ where: { id: customerId, storeId }, select: { id: true, name: true } });
   if (!customer) return null;
 
   const wanted = [...new Set([...upserts.map((u) => u.productId), ...removals])];
   const own = await db.product.count({ where: { storeId, id: { in: wanted } } });
   if (own !== wanted.length) throw new DataError("Unknown product.");
 
+  const old = await db.customerPrice.findMany({ where: { customerId, productId: { in: wanted } } });
+  const oldMap = new Map(old.map((o) => [o.productId, o.priceCents]));
+  const before = Object.fromEntries(wanted.map((id) => [id, oldMap.get(id) ?? null]));
+  const after = Object.fromEntries([...removals.map((id) => [id, null] as const), ...upserts.map((u) => [u.productId, u.priceCents] as const)]);
   await db.$transaction([
     db.customerPrice.deleteMany({ where: { customerId, productId: { in: removals } } }),
     ...upserts.map((u) =>
@@ -92,5 +97,8 @@ export async function setCustomerPrices(
       }),
     ),
   ]);
-  return { saved: upserts.length, cleared: removals.length };
+  const changeId = await recordChange(ctx, {
+    entity: "customerPrices", entityId: customerId, action: "update", summary: `Changed special prices for ${customer.name}`, before, after,
+  });
+  return { saved: upserts.length, cleared: removals.length, changeId };
 }

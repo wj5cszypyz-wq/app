@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useUndoToast } from "@/components/use-undo";
 import { IconPlus, IconSearch } from "@/components/icons";
 import { useToast } from "@/components/toast";
 import { categoriesOf } from "@/lib/catalog";
@@ -23,6 +25,7 @@ async function patch(url: string, body: object) {
 
 function PriceCell({ p, onSaved }: { p: Product; onSaved: (cents: number) => void }) {
   const notify = useToast();
+  const undoToast = useUndoToast();
   const paths = useStorePaths();
   const [value, setValue] = useState((p.priceCents / 100).toFixed(2));
   const [saving, setSaving] = useState(false);
@@ -36,9 +39,9 @@ function PriceCell({ p, onSaved }: { p: Product; onSaved: (cents: number) => voi
     }
     setSaving(true);
     try {
-      await patch(paths.api(`/manage/products/${p.id}`), { price: value });
+      const r = await patch(paths.api(`/manage/products/${p.id}`), { price: value });
       onSaved(cents);
-      notify("success", `${p.name}`, `Price set to ${formatMoney(cents)} / ${p.unit}`);
+      undoToast(`${p.name}`, `Price set to ${formatMoney(cents)} / ${p.unit}`, r.changeId);
     } catch (e) {
       setValue((p.priceCents / 100).toFixed(2));
       notify("error", "Couldn't save price", e instanceof Error ? e.message : undefined);
@@ -65,10 +68,13 @@ function PriceCell({ p, onSaved }: { p: Product; onSaved: (cents: number) => voi
   );
 }
 
-export function CatalogManager({ initial, categories: initialCategories, defaultKind, suggestions }: { initial: Product[]; categories: Category[]; defaultKind: UnitKind; suggestions: boolean }) {
+export function CatalogManager({ initial, categories: initialCategories, defaultKind, suggestions, removed }: { initial: Product[]; categories: Category[]; defaultKind: UnitKind; suggestions: boolean; removed: { id: string; name: string; sku: string; category: string }[] }) {
   const notify = useToast();
   const paths = useStorePaths();
   const [products, setProducts] = useState(initial);
+  useEffect(() => setProducts(initial), [initial]);
+  const undoToast = useUndoToast();
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
   const [editing, setEditing] = useState<Product | "new" | null>(null);
@@ -87,8 +93,8 @@ export function CatalogManager({ initial, categories: initialCategories, default
   async function toggleStock(p: Product) {
     update(p.id, { inStock: !p.inStock });
     try {
-      await patch(paths.api(`/manage/products/${p.id}`), { inStock: !p.inStock });
-      notify("success", p.name, !p.inStock ? "Back in stock" : "Marked out of stock. Customers can't order it.");
+      const r = await patch(paths.api(`/manage/products/${p.id}`), { inStock: !p.inStock });
+      undoToast(p.name, !p.inStock ? "Back in stock" : "Marked out of stock. Customers can't order it.", r.changeId);
     } catch (e) {
       update(p.id, { inStock: p.inStock });
       notify("error", "Couldn't update stock", e instanceof Error ? e.message : undefined);
@@ -98,11 +104,21 @@ export function CatalogManager({ initial, categories: initialCategories, default
   async function archive(p: Product) {
     if (!confirm(`Remove ${p.name} from your catalog? Past orders keep it.`)) return;
     try {
-      await patch(paths.api(`/manage/products/${p.id}`), { active: false });
+      const r = await patch(paths.api(`/manage/products/${p.id}`), { active: false });
       setProducts((all) => all.filter((x) => x.id !== p.id));
-      notify("success", "Product removed", p.name);
+      undoToast("Product removed", `${p.name}. You can restore it any time under Removed products.`, r.changeId);
     } catch (e) {
       notify("error", "Couldn't remove product", e instanceof Error ? e.message : undefined);
+    }
+  }
+
+  async function restore(id: string, name: string) {
+    try {
+      const r = await patch(paths.api(`/manage/products/${id}`), { active: true });
+      undoToast("Product restored", name, r.changeId);
+      router.refresh();
+    } catch (e) {
+      notify("error", "Couldn't restore", e instanceof Error ? e.message : undefined);
     }
   }
 
@@ -120,7 +136,7 @@ export function CatalogManager({ initial, categories: initialCategories, default
     );
     setEditing(null);
     refreshCategories();
-    notify("success", isNew ? "Product added" : "Saved", p.name);
+    undoToast(isNew ? "Product added" : "Saved", p.name, p.changeId);
   }
 
   const counts = useMemo(() => {
@@ -198,6 +214,22 @@ export function CatalogManager({ initial, categories: initialCategories, default
           {shown.length === 0 && <div className="empty"><h3>No matches</h3><p>Try a different search or category.</p></div>}
         </div>
       </div>
+      {removed.length > 0 && (
+        <details className="panel removed-list">
+          <summary>Removed products ({removed.length})</summary>
+          <div className="stack" style={{ gap: 0 }}>
+            {removed.map((r) => (
+              <div key={r.id} className="row-between request-row">
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 550, overflowWrap: "anywhere" }}>{r.name}</div>
+                  <div className="dim" style={{ fontSize: 11.5 }}><span className="mono">{r.sku}</span> · {r.category}</div>
+                </div>
+                <button className="btn btn-sm" onClick={() => restore(r.id, r.name)}>Restore</button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
     </>
   );
 }

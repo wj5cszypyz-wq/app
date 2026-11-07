@@ -50,6 +50,7 @@ model Store {
   uploads         Upload[]
   importBatches   ImportBatch[]
   pastInvoices    PastInvoice[]
+  changes         ChangeLog[]
 }
 
 model User {
@@ -309,4 +310,26 @@ model PastInvoice {
 
   @@unique([storeId, qboInvoiceId])
   @@index([customerId, txnDate])
+}
+
+// Every change sellers make to products, special prices and store settings, so it can be undone
+// (and the undo undone again). before/after: JSON of the fields that changed.
+// entity: "product" | "customerPrices" | "store"; action: "create" | "update" | "undo"
+model ChangeLog {
+  id        String    @id @default(cuid())
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId    String
+  userName  String
+  entity    String
+  entityId  String
+  action    String
+  summary   String
+  before    String
+  after     String
+  undoOfId  String?
+  undoneAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([storeId, createdAt])
 }

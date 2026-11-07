@@ -14,7 +14,7 @@ beforeAll(async () => {
   b = await makeStore("routes-b");
 });
 
-const idsOf = (f: StoreFixture): Ids => ({ order: f.orderA.id, product: f.product.id, customer: f.customerA.id, staffUser: f.staff.id, request: f.accountRequest.id, batch: f.importBatch.id });
+const idsOf = (f: StoreFixture): Ids => ({ order: f.orderA.id, product: f.product.id, customer: f.customerA.id, staffUser: f.staff.id, request: f.accountRequest.id, batch: f.importBatch.id, change: f.change.id });
 
 async function load(file: string): Promise<Record<string, RouteHandler>> {
   return import(`../../app/api/s/[slug]/${file}`);

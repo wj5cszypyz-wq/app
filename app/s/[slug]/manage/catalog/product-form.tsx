@@ -131,7 +131,7 @@ export function ProductForm(props: {
     if (!res.ok) return setError(json.error ?? "Couldn't save.");
     props.onSaved(
       p
-        ? { ...p, ...body, qboUnitFactor: Number(f.qboFactor) || 1, qboUnitLabel: f.qboLabel || null, description: f.description || null, category: body.category, packCount: Number(f.packCount) || null, packAmount: Number(f.packAmount) || null, packUnit: body.packUnit, packSize: pack, priceCents: parseMoney(f.price) ?? p.priceCents, sku: f.sku.trim().toUpperCase(), imageIds: JSON.stringify(images) }
+        ? { ...p, ...body, changeId: json.changeId, qboUnitFactor: Number(f.qboFactor) || 1, qboUnitLabel: f.qboLabel || null, description: f.description || null, category: body.category, packCount: Number(f.packCount) || null, packAmount: Number(f.packAmount) || null, packUnit: body.packUnit, packSize: pack, priceCents: parseMoney(f.price) ?? p.priceCents, sku: f.sku.trim().toUpperCase(), imageIds: JSON.stringify(images) }
         : (json.product as Product),
     );
   }

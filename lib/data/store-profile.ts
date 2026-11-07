@@ -5,6 +5,7 @@ import type { StoreCtx } from "../scope";
 import { isUnitKind } from "../units";
 import { DataError } from "./errors";
 import { asManager } from "./guard";
+import { recordChange } from "./history";
 
 export const LOOKS = ["fresh", "clean", "craft", "classic"] as const;
 export type Look = (typeof LOOKS)[number];
@@ -43,7 +44,7 @@ const clean = (v: string | null | undefined, max: number) => {
   return t || null;
 };
 
-export async function updateProfile(ctx: StoreCtx, patch: ProfilePatch): Promise<{ accentAdjusted: boolean }> {
+export async function updateProfile(ctx: StoreCtx, patch: ProfilePatch): Promise<{ accentAdjusted: boolean; changeId: string }> {
   const { storeId } = asManager(ctx);
   if (ctx.role !== "owner") throw new DataError("Only the store owner can change the store's details and look.");
   const data: Record<string, unknown> = {};
@@ -95,6 +96,12 @@ export async function updateProfile(ctx: StoreCtx, patch: ProfilePatch): Promise
   }
   if (patch.setupDone) data.setupDoneAt = new Date();
   if (Object.keys(data).length === 0) throw new DataError("Nothing to update.");
+  const old = await db.store.findUniqueOrThrow({ where: { id: storeId } });
   await db.store.update({ where: { id: storeId }, data });
-  return { accentAdjusted };
+  const undoable = Object.fromEntries(Object.entries(data).filter(([k]) => k !== "setupDoneAt"));
+  const before = Object.fromEntries(Object.keys(undoable).map((k) => [k, (old as Record<string, unknown>)[k]]));
+  const changeId = Object.keys(undoable).length
+    ? await recordChange(ctx, { entity: "store", entityId: storeId, action: "update", summary: "Changed store settings", before, after: undoable })
+    : "";
+  return { accentAdjusted, changeId };
 }

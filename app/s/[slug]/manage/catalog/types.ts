@@ -17,6 +17,7 @@ export type Product = {
   qboItemId: string | null;
   qboUnitFactor: number;
   qboUnitLabel: string | null;
+  changeId?: string; // set right after a save, for the Undo button
 };
 
 export type Category = { id: string; name: string; emoji: string };

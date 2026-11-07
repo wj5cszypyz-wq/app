@@ -7,6 +7,7 @@ import { Spinner } from "@/components/status";
 import { useToast } from "@/components/toast";
 import { formatMoney } from "@/lib/money";
 import { useStorePaths } from "@/components/use-store";
+import { useUndoToast } from "@/components/use-undo";
 
 type Product = { id: string; sku: string; name: string; category: string; unit: string; packSize: string | null; priceCents: number };
 
@@ -14,6 +15,7 @@ const toInput = (cents: number | undefined) => (cents === undefined ? "" : (cent
 
 export function PriceEditor(props: { customerId: string; products: Product[]; custom: Record<string, number> }) {
   const router = useRouter();
+  const undoToast = useUndoToast();
   const paths = useStorePaths();
   const notify = useToast();
   const [values, setValues] = useState<Record<string, string>>(() =>
@@ -38,7 +40,7 @@ export function PriceEditor(props: { customerId: string; products: Product[]; cu
     const json = await res.json();
     setBusy(false);
     if (!res.ok) return notify("error", "Couldn't save prices", json.error);
-    notify("success", "Prices saved", "New orders from this customer use them right away.");
+    undoToast("Prices saved", "New orders from this customer use them right away.", json.changeId);
     router.refresh();
   }
 

@@ -23,7 +23,7 @@ const ACCOUNTS = [
   },
   {
     key: "brightline:owner",
-    own: ["/s/brightline/manage", "/s/brightline/manage/catalog", "/s/brightline/manage/customers", "/s/brightline/manage/setup", "/s/brightline/manage/team"],
+    own: ["/s/brightline/manage", "/s/brightline/manage/catalog", "/s/brightline/manage/customers", "/s/brightline/manage/setup", "/s/brightline/manage/team", "/s/brightline/manage/history"],
     foreign: ["/s/harbor-fresh/manage", "/s/harbor-fresh"],
     foreignApi: ["/api/s/harbor-fresh/manage/orders?filter=all"],
   },
