@@ -74,7 +74,7 @@ export function LiveBoard(props: {
 
   useEffect(() => {
     try {
-      setSound(localStorage.getItem("larder_sound") === "1");
+      setSound(localStorage.getItem("orderdock_sound") === "1");
     } catch {
       // storage blocked; default off
     }
@@ -126,7 +126,7 @@ export function LiveBoard(props: {
     const next = !sound;
     setSound(next);
     try {
-      localStorage.setItem("larder_sound", next ? "1" : "0");
+      localStorage.setItem("orderdock_sound", next ? "1" : "0");
     } catch {
       // ignore
     }

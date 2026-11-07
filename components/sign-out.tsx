@@ -15,7 +15,7 @@ export function SignOutButton() {
         await fetch("/api/auth/logout", { method: "POST" });
         try {
           Object.keys(localStorage)
-            .filter((k) => k.startsWith("larder_"))
+            .filter((k) => k.startsWith("orderdock_"))
             .forEach((k) => localStorage.removeItem(k));
         } catch {
           // storage blocked: nothing to clear

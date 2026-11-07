@@ -14,8 +14,7 @@ Read this first in any new session. Last updated 2026-11-06.
 - **Later revenue ideas:** card/ACH payment fee via Stripe Connect, restaurant "Pro" plan (invoices into the
   restaurant's own QuickBooks as Bills, price tracking), marketplace, rush-order fees. Avoid per-order fees.
 - **Name: OrderDock** (chosen by the owner on 2026-11-07; was "Larder"). Set in `lib/brand.ts`. Internal
-  names (cookie `larder_sid`, browser keys `larder_*`) were left unchanged on purpose; renaming them would
-  only sign everyone out.
+  names were renamed too (cookie `orderdock_sid`, browser keys `orderdock_*`).
 
 ## How the owner wants to work
 - No fluff, no made-up facts. Plain language, step by step.
