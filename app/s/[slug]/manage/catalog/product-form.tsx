@@ -15,6 +15,7 @@ export function ProductForm(props: {
   initial?: Product;
   categories: Category[];
   defaultKind: UnitKind;
+  suggestions: boolean;
   onSaved: (p: Product) => void;
   onClose: () => void;
 }) {
@@ -40,7 +41,54 @@ export function ProductForm(props: {
   const [images, setImages] = useState<string[]>(p ? photoIds(p) : []);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }));
+  const [touched, setTouched] = useState<Set<string>>(new Set());
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggested, setSuggested] = useState<string | null>(null);
+  const [suggestedNote, setSuggestedNote] = useState(false);
+  const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => {
+    setF((x) => ({ ...x, [k]: v }));
+    if (k !== "name") setTouched((t) => new Set(t).add(k as string));
+  };
+
+  // Smart entry: when a new product's name is typed, fill in the details the seller hasn't set yet.
+  async function suggest() {
+    const name = f.name.trim();
+    if (!props.suggestions || p || name.length < 3 || name === suggested) return;
+    setSuggesting(true);
+    setSuggested(name);
+    try {
+      const res = await fetch(paths.api("/manage/suggest"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description: f.description }),
+      });
+      const json = await res.json().catch(() => ({}));
+      const sug = json.suggestion as null | {
+        category: string; emoji: string; unitKind: UnitKind; unit: string;
+        packCount: number | null; packAmount: number | null; packUnit: string | null; byWeight: boolean;
+      };
+      if (sug) {
+        setF((x) => {
+          const next = { ...x };
+          const free = (k: string) => !touched.has(k);
+          if (free("category")) {
+            const known = props.categories.find((c) => c.name === sug.category);
+            if (known) next.category = known.name;
+            else Object.assign(next, { category: NEW, newCategory: sug.category, newEmoji: sug.emoji });
+          }
+          if (free("unitKind") && free("unit")) Object.assign(next, { unitKind: sug.unitKind, unit: sug.unit });
+          if (free("packCount") && free("packAmount") && free("packUnit")) {
+            Object.assign(next, { packCount: sug.packCount ? String(sug.packCount) : "", packAmount: sug.packAmount ? String(sug.packAmount) : "", packUnit: sug.packUnit ?? "" });
+          }
+          if (free("byWeight")) next.byWeight = sug.byWeight;
+          return next;
+        });
+        setSuggestedNote(true);
+      }
+    } finally {
+      setSuggesting(false);
+    }
+  }
 
   const pack = packLabel({
     count: Number(f.packCount) || null,
@@ -96,7 +144,9 @@ export function ProductForm(props: {
       </div>
 
       <div className="grid-form">
-        <div className="field span-2"><label htmlFor="pf-name">Product name</label><input id="pf-name" className="input" required maxLength={120} value={f.name} onChange={(e) => set("name", e.target.value)} /></div>
+        <div className="field span-2"><label htmlFor="pf-name">Product name</label><input id="pf-name" className="input" required maxLength={120} value={f.name} onChange={(e) => set("name", e.target.value)} onBlur={suggest} />
+          {suggesting && <div className="dim" style={{ fontSize: 12 }}>Filling in the details…</div>}
+          {suggestedNote && !suggesting && <div className="dim" style={{ fontSize: 12 }}>We filled in the details below from the name. Check them before saving.</div>}</div>
         <div className="field"><label htmlFor="pf-sku">SKU</label><input id="pf-sku" className="input mono" required maxLength={40} value={f.sku} onChange={(e) => set("sku", e.target.value)} /></div>
 
         <div className="field">

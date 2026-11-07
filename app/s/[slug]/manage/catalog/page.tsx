@@ -4,6 +4,7 @@ import { getProfile } from "@/lib/data/store-profile";
 import { listProducts } from "@/lib/data/products";
 import { MANAGE, requireStorePage } from "@/lib/scope";
 import { isUnitKind, type UnitKind } from "@/lib/units";
+import { suggestionsAvailable } from "@/lib/suggest";
 import { CatalogManager } from "./catalog-manager";
 
 export const metadata: Metadata = { title: "Products" };
@@ -27,6 +28,7 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
       initial={products}
       categories={categories.map((c) => ({ id: c.id, name: c.name, emoji: c.emoji }))}
       defaultKind={defaultKind}
+      suggestions={suggestionsAvailable()}
     />
   );
 }

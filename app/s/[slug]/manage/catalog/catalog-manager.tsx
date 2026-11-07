@@ -65,7 +65,7 @@ function PriceCell({ p, onSaved }: { p: Product; onSaved: (cents: number) => voi
   );
 }
 
-export function CatalogManager({ initial, categories: initialCategories, defaultKind }: { initial: Product[]; categories: Category[]; defaultKind: UnitKind }) {
+export function CatalogManager({ initial, categories: initialCategories, defaultKind, suggestions }: { initial: Product[]; categories: Category[]; defaultKind: UnitKind; suggestions: boolean }) {
   const notify = useToast();
   const paths = useStorePaths();
   const [products, setProducts] = useState(initial);
@@ -147,6 +147,7 @@ export function CatalogManager({ initial, categories: initialCategories, default
           initial={editing === "new" ? undefined : editing}
           categories={categories}
           defaultKind={defaultKind}
+          suggestions={suggestions}
           onSaved={saved}
           onClose={() => setEditing(null)}
         />

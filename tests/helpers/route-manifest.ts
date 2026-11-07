@@ -36,6 +36,7 @@ export const ROUTES: RouteCase[] = [
   { file: "manage/qbo/import/route.ts", method: "GET", path: () => "manage/qbo/import?kind=items", params: () => ({}), roles: MANAGE, okStatus: [409] },
   { file: "manage/qbo/import/route.ts", method: "POST", path: () => "manage/qbo/import", params: () => ({}), body: () => ({ kind: "items", ids: ["1"] }), roles: MANAGE, okStatus: [409] },
   { file: "manage/qbo/import/[id]/undo/route.ts", method: "POST", path: (i) => `manage/qbo/import/${i.batch}/undo`, params: (i) => ({ id: i.batch }), roles: MANAGE, okStatus: [200] },
+  { file: "manage/suggest/route.ts", method: "POST", path: () => "manage/suggest", params: () => ({}), body: () => ({ name: "Whole milk" }), roles: MANAGE, okStatus: [200] },
   { file: "manage/staff/route.ts", method: "POST", path: () => "manage/staff", params: () => ({}), body: () => ({ email: `staff-${++n}@test.local` }), roles: ["owner"], okStatus: [201] },
   { file: "manage/staff/[userId]/route.ts", method: "DELETE", path: (i) => `manage/staff/${i.staffUser}`, params: (i) => ({ userId: i.staffUser }), roles: ["owner"], okStatus: [200] },
   { file: "manage/customers/[id]/prices/route.ts", method: "PUT", path: (i) => `manage/customers/${i.customer}/prices`, params: (i) => ({ id: i.customer }), body: (f) => ({ prices: [{ productId: f.product.id, price: "9.00" }] }), roles: MANAGE, okStatus: [200] },
