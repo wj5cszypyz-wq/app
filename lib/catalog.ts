@@ -19,6 +19,17 @@ export const CATEGORY_ICON: Record<string, string> = {
   "Paper & Disposables": "🧻",
 };
 
+/**
+ * The categories a store actually uses, in display order: the built-in ones in their usual order,
+ * then any of the store's own categories alphabetically. Every product's category appears.
+ */
+export function categoriesOf(products: { category: string }[]): string[] {
+  const used = new Set(products.map((p) => p.category));
+  const known = (CATEGORIES as readonly string[]).filter((c) => used.has(c));
+  const own = [...used].filter((c) => !(CATEGORIES as readonly string[]).includes(c)).sort((a, b) => a.localeCompare(b));
+  return [...known, ...own];
+}
+
 export const UNITS =["case", "lb", "each", "dozen", "gal"] as const;
 export type Unit = (typeof UNITS)[number];
 

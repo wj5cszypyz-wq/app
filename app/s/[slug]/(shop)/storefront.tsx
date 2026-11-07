@@ -6,7 +6,7 @@ import { IconArrow, IconCart, IconPlus, IconSearch, IconX } from "@/components/i
 import { Spinner } from "@/components/status";
 import { useToast } from "@/components/toast";
 import { loadCart, saveCart, type Cart } from "@/lib/cart";
-import { CATEGORIES, CATEGORY_ICON, isValidQty } from "@/lib/catalog";
+import { CATEGORY_ICON, categoriesOf, isValidQty } from "@/lib/catalog";
 import { formatMoney, formatQty } from "@/lib/money";
 import { lineTotal } from "@/lib/orders";
 import type { StoreProduct } from "@/lib/data/storefront";
@@ -97,19 +97,21 @@ export function Storefront(props: {
       return next;
     });
 
+  const categories = useMemo(() => categoriesOf(props.products), [props.products]);
+
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const match = (p: StoreProduct) => !needle || `${p.name} ${p.sku} ${p.category}`.toLowerCase().includes(needle);
     const out: { name: string; items: StoreProduct[] }[] = [];
     const usual = props.usualIds.map((id) => byId.get(id)).filter((p): p is StoreProduct => Boolean(p && match(p)));
     if (!needle && usual.length && (!cat || cat === USUAL)) out.push({ name: USUAL, items: usual });
-    for (const c of CATEGORIES) {
+    for (const c of categories) {
       if (cat && cat !== c) continue;
       const items = props.products.filter((p) => p.category === c && match(p));
       if (items.length) out.push({ name: c, items });
     }
     return out;
-  }, [props.products, props.usualIds, byId, q, cat]);
+  }, [props.products, props.usualIds, byId, q, cat, categories]);
 
   const lines = Object.entries(cart)
     .map(([id, qty]) => ({ p: byId.get(id)!, qty }))
@@ -159,7 +161,7 @@ export function Storefront(props: {
             <span className="emoji">{icon(USUAL)}</span>{USUAL} <span className="count">{props.usualIds.length}</span>
           </button>
         )}
-        {CATEGORIES.filter((c) => railCounts.get(c)).map((c) => (
+        {categories.filter((c) => railCounts.get(c)).map((c) => (
           <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}>
             <span className="emoji">{icon(c)}</span>{c} <span className="count">{railCounts.get(c)}</span>
           </button>
@@ -189,7 +191,7 @@ export function Storefront(props: {
           {props.usualIds.length > 0 && (
             <button aria-pressed={cat === USUAL} onClick={() => setCat(USUAL)}>{icon(USUAL)} {USUAL}</button>
           )}
-          {CATEGORIES.filter((c) => railCounts.get(c)).map((c) => (
+          {categories.filter((c) => railCounts.get(c)).map((c) => (
             <button key={c} aria-pressed={cat === c} onClick={() => setCat(c)}>{icon(c)} {c}</button>
           ))}
         </div>

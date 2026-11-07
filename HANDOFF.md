@@ -50,10 +50,25 @@ Read this first in any new session. Last updated 2026-11-06.
   `next build` passes, and every supplier and restaurant page loads with no errors.
 - Demo buttons only appear with `npm run dev`. `npm start` (production) hides them on purpose.
 
+## Direction change (2026-11-07): store builder for any seller
+- The owner wants Larder to become a store template **any seller** can fill in (produce, lamps, any niche),
+  each with **its own separate store**, with QuickBooks invoicing as the main selling point.
+- Approved design: `docs/superpowers/specs/2026-11-07-multi-niche-stores-design.md`.
+- Build roadmap (7 phases, each ends tested and pushed): `docs/superpowers/plans/2026-11-07-roadmap.md`.
+- Work happens on branch `claude/loving-fermi-42tguu`; `main` still has the original single-supplier app.
+
+### Phase 1 (multi-store foundation): done
+- `Store` / `Membership` / `Customer` models; stores at `/s/<slug>` (customers) and `/s/<slug>/manage` (sellers).
+- `lib/scope.ts` checks membership on every request; `lib/data/*` is the only place store data is read/written.
+- Tests: 120 unit/integration tests incl. a break-in matrix over every store action, guard tests that fail if a
+  page or action skips the check, and a real-browser script (`tests/e2e/isolation.e2e.mjs`, 96+ checks).
+- Two demo stores: Harbor Fresh (produce) and Brightline Lamps. Demo buttons on the sign-in page.
+- Known gaps handled in later phases: categories/units are still the food list when **adding** products
+  (phase 3), customers get temporary passwords instead of email invites (phase 2), no sign-up yet (phase 2).
+
 ## Next steps (in order)
-1. ~~Push the code to GitHub~~ — done 2026-11-06.
-2. Connect a free QuickBooks **sandbox** (developer.intuit.com → app → redirect URI
-   `http://localhost:3000/api/qbo/callback` → keys into `.env`) and test a real invoice end-to-end.
+1. Phase 2 of the roadmap (accounts: sign-up, email verification, password reset, invites, two-step sign-in).
+2. QuickBooks sandbox test (needs the owner's Intuit developer keys), best after phase 4.
 3. Before real customers: password reset + change password, Postgres, hosting with HTTPS, Privacy Policy +
    Terms (Intuit requires them), Intuit production approval, `DEMO_MODE="false"`.
 4. Then: Stripe Connect payments, standing orders, order cutoff times, email/SMS order alerts.

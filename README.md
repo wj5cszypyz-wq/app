@@ -1,30 +1,31 @@
 # Larder
 
-Wholesale ordering for food suppliers. Restaurants order from their phone; each order becomes a
-QuickBooks Online invoice automatically, and the supplier sees it live with a printable invoice and
-packing slip.
+Ordering stores for any seller (produce wholesalers, lamp makers, any niche). Each seller gets their own
+separate store at `/s/<store-name>`; their customers order from their phone, each order becomes a
+QuickBooks Online invoice automatically, and the seller sees it live with a printable invoice and
+packing slip. Build plan: `docs/superpowers/plans/2026-11-07-roadmap.md`.
 
 > "Larder" is a placeholder name. Change it in `lib/brand.ts`.
 
 ## What's built
 
-**Supplier (wholesaler)**
+**Seller (store owner or staff)** at `/s/<store>/manage`
 - **Command**: live order board (updates every 5 s, new-order alert + optional sound), today's sales, open orders, QuickBooks issues
 - **Orders**: full history, fulfillment pipeline (New → Packing → Ready → Delivered), cancel/reopen
 - **Print**: invoice and packing slip (checkbox + "packed" column + signature line), Letter size
 - **QuickBooks card** on every order: invoice number, open in QuickBooks, QuickBooks' own PDF, retry on failure
 - **Catalog**: add products, edit prices inline, in-stock switch, remove
-- **Customers**: add restaurants with a login, set custom prices per restaurant
+- **Customers**: add customers with a login, set custom prices per customer
 - **QuickBooks settings**: connect / reconnect / disconnect, sync counts
 
-**Restaurant (buyer)**
+**Customer (buyer)** at `/s/<store>`
 - Catalog with *their* prices, search (`/` to focus), aisles, "Your usuals" from past orders
-- Cart that survives refresh, delivery date, note to supplier
+- Cart that survives refresh, delivery date, note to the seller
 - Order confirmation, history, one-tap reorder
 
 **QuickBooks sync** (`lib/qbo.ts`, `lib/sync.ts`)
 - OAuth 2.0 connect with CSRF state check; tokens encrypted at rest (AES-256-GCM); auto refresh
-- Restaurant → QuickBooks **Customer** (matched by name or created)
+- Customer → QuickBooks **Customer** (matched by name or created)
 - Product → QuickBooks **Item**, Non-inventory (matched by name or created)
 - Order → **Invoice** numbered `ORD-####`, using `requestid` so a retry can never create a duplicate
 - Failures never lose the order: it's flagged on the board with the exact QuickBooks error and a Retry button
@@ -46,7 +47,7 @@ npm run setup
 npm run dev
 ```
 
-3. Open http://localhost:3000 and click **Try as restaurant** or **Try as supplier**.
+3. Open http://localhost:3000 and click one of the demo buttons: two separate demo stores (Harbor Fresh, a produce wholesaler, and Brightline Lamps), each with **Try as customer** and **Try as seller**.
    Demo accounts have random passwords nobody knows; the demo buttons only work locally with `DEMO_MODE="true"` and are switched off in production builds.
 
 ## Security
@@ -57,13 +58,20 @@ npm run dev
 - **Headers:** strict Content-Security-Policy, no framing, nosniff, no-store caching for signed-in pages and API, HSTS in production.
 - **QuickBooks tokens:** encrypted at rest with AES-256-GCM; never sent to the browser.
 - **Browser storage:** only the cart (product IDs and quantities). Wiped on sign-out.
-- **Access control:** every page and API call re-checks the session and role on the server; restaurants only see their own orders and prices.
+- **Store isolation:** every page and API call checks, on the server, that the signed-in person belongs to the store in the address (`lib/scope.ts`); anything else is "not found". All store data goes through `lib/data/*`, which always filters by that store (and by customer, for buyers). Tests try every action as every kind of outsider (`tests/integration/routes.test.ts`), and a guard test fails if a new page or action skips the check.
+- **Customers only see their own orders and prices.**
 - `npm audit`: 0 known vulnerabilities.
 
-Run the tests:
+Run the tests (unit + integration; uses its own throwaway database, `prisma/test.db`):
 
 ```bash
 npm test
+```
+
+Real-browser check (store isolation, every page loads, nothing wider than the screen), with `npm run dev` running:
+
+```bash
+node tests/e2e/isolation.e2e.mjs
 ```
 
 ## Connect QuickBooks (sandbox, free)
@@ -71,8 +79,8 @@ npm test
 1. Sign in at https://developer.intuit.com → **My Apps** → **Create an app** → QuickBooks Online and Payments → scope **Accounting**.
 2. **Development → Keys & credentials**: add Redirect URI `http://localhost:3000/api/qbo/callback`.
 3. Copy **Client ID** and **Client Secret** into `.env` (`QBO_CLIENT_ID`, `QBO_CLIENT_SECRET`). Leave `QBO_ENV="sandbox"`.
-4. Restart `npm run dev`, sign in as the supplier, go to **QuickBooks → Connect QuickBooks**, pick your sandbox company.
-5. Sign in as the restaurant, place an order, and watch the invoice appear in your sandbox QuickBooks.
+4. Restart `npm run dev`, sign in as a seller (store owner), go to **QuickBooks → Connect QuickBooks**, pick your sandbox company.
+5. Sign in as that store's customer, place an order, and watch the invoice appear in your sandbox QuickBooks.
 
 ## Going live (checklist)
 
@@ -94,12 +102,16 @@ supplier staff invites, CSV catalog import, QuickBooks Desktop (Web Connector), 
 
 ```
 app/
-  login/              sign-in (both roles)
-  supplier/           command board, orders, catalog, customers, QuickBooks settings
-  shop/               restaurant storefront, history, order confirmation
-  print/[id]          invoice / packing slip
-  api/                auth, orders, supplier CRUD, QuickBooks OAuth
+  login/              sign-in
+  stores/             "choose a store" for people with access to more than one
+  s/[slug]/manage/    seller: today board, orders, products, customers, QuickBooks settings
+  s/[slug]/(shop)/    customer: storefront, history, order confirmation
+  s/[slug]/print/[id] invoice / packing slip
+  api/s/[slug]/       every store action (checked by lib/scope.ts)
+  api/qbo/callback    QuickBooks sign-in return address (fixed, as Intuit requires)
 lib/
+  scope.ts            who may use which store (membership check on every request)
+  data/               all store data reads/writes, always filtered by store
   qbo.ts              QuickBooks API client (OAuth, customers, items, invoices, PDF)
   sync.ts             order → invoice orchestration
   orders.ts           order validation + pricing (unit tested)

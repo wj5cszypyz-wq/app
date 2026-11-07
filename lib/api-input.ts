@@ -8,4 +8,4 @@ export const str = (b: Record<string, unknown>, k: string) => (typeof b[k] === "
 
 export const moneyInput = (v: unknown) => (typeof v === "string" || typeof v === "number" ? v : "");
 
-export type Params<T extends Record<string, string> = Record<string, never>> = { params: Promise<{ slug: string } & T> };
+export type Params<T extends object = object> = { params: Promise<{ slug: string } & T> };

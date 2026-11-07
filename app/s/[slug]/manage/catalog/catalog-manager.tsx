@@ -4,7 +4,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { IconPlus, IconSearch, IconX } from "@/components/icons";
 import { Spinner } from "@/components/status";
 import { useToast } from "@/components/toast";
-import { CATEGORIES, UNITS } from "@/lib/catalog";
+import { CATEGORIES, UNITS, categoriesOf } from "@/lib/catalog";
 import { formatMoney } from "@/lib/money";
 import { useStorePaths } from "@/components/use-store";
 
@@ -182,7 +182,7 @@ export function CatalogManager({ initial }: { initial: Product[] }) {
           </div>
           <select className="select" style={{ width: 210 }} value={cat} onChange={(e) => setCat(e.target.value)} aria-label="Category">
             <option value="All">All categories ({products.length})</option>
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c} ({counts.get(c) ?? 0})</option>)}
+            {categoriesOf(products).map((c) => <option key={c} value={c}>{c} ({counts.get(c) ?? 0})</option>)}
           </select>
         </div>
         <div className="table-wrap">
