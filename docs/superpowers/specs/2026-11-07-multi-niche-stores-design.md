@@ -1,6 +1,6 @@
 # Larder → store builder for any seller: design
 
-Status: draft for owner approval · 2026-11-07
+Status: approved by owner · 2026-11-07
 
 ## 1. Intent and why
 
@@ -37,7 +37,7 @@ How it reaches sellers: the owner visits suppliers in person; the seller signs u
   their email; the platform admin can suspend any store.
 - Custom domains / subdomains (needs hosting + DNS; stores live at `/s/<store-name>` for now, built so
   subdomains can be added later without changing data).
-- QuickBooks Desktop. Importing past QuickBooks invoices as order history (see §10 Q1).
+- QuickBooks Desktop.
 - Free-form custom CSS/HTML from sellers (it would open cross-site-scripting holes and break layouts).
 
 ## 4. Anti-goals (failure even if it "works")
@@ -112,7 +112,7 @@ A short step-by-step setup after sign-up, each step skippable and editable later
 3. Look: pick a style (see 6.7), accent color, logo.
 4. Connect QuickBooks (optional, can do later).
 5. Import from QuickBooks or add first products.
-6. Add customers (import from QuickBooks or invite by email).
+6. Add customers (import from QuickBooks or invite by email; optionally turn on "request an account").
 
 ### 6.5 Products and units
 
@@ -155,6 +155,11 @@ Rules:
   **unique per store**, so re-importing updates instead of duplicating. Each import is an `ImportBatch` that can
   be undone (removes products it created that have no orders, archives those that do; reverts fields it changed).
 - **Import customers** the same way, keyed by QuickBooks customer ID.
+- **Import past invoices (optional, seller's choice)**: the seller can pull past invoices for imported customers
+  over a date range they pick (default: last 12 months). They appear to the seller and to that buyer as
+  read-only "Past orders (from QuickBooks)" with a Reorder button for lines whose items are linked to store
+  products. Keyed by QuickBooks invoice ID (unique per store), so running it again never duplicates. Past
+  invoices are never sent back to QuickBooks and don't count toward order numbers. Undoable like other imports.
 - **Link, don't create**: a product linked to a QuickBooks item is invoiced against that item. Only products with
   no link get a new Non-inventory item, after first searching QuickBooks by name (including inactive items) to
   link instead of duplicating. Same for customers (search by name including inactive; if the name is taken by a
@@ -224,9 +229,10 @@ Wording comes from the store (e.g. "delivery" vs "pickup"), not hard-coded food 
 File layout, library choices (TOTP, image processing, email provider), exact copy, test structure, migration
 mechanics, the exact AI model and prompt.
 
-## 10. Owner questions
+## 10. Owner decisions
 
-- Q1. Should we import past QuickBooks invoices so buyers see their order history from before the app?
-  (Builder's default: no; history starts when the store opens.)
-- Q2. Can a buyer request an account on a store's page (seller approves), or seller-invite only?
-  (Builder's default: both; request form is off by default.)
+- Q1. Import past QuickBooks invoices as history: **yes, optional** per seller (see 6.6).
+- Q2. Buyer accounts: seller invites, and an optional "request an account" form on the store page that the
+  seller approves (off by default, seller turns it on in Settings).
+- The build may be split across several sessions; each phase in §8 is self-contained and ends tested, committed
+  and pushed, with notes in HANDOFF.md so the next session can pick up.
