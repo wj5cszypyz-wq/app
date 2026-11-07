@@ -35,7 +35,10 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       // Signed-in data must never be stored by the browser or any proxy cache.
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }] },
-      { source: "/(supplier|shop|print)/:path*", headers: [{ key: "Cache-Control", value: "private, no-store" }] },
+      ...["/s/:path*", "/stores", "/account", "/admin", "/invite"].map((source) => ({
+        source,
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      })),
     ];
   },
 };
