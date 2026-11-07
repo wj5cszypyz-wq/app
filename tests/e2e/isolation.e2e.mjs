@@ -17,20 +17,20 @@ const ok = (cond, label) => {
 const ACCOUNTS = [
   {
     key: "harbor-fresh:owner",
-    own: ["/s/harbor-fresh/manage", "/s/harbor-fresh/manage/orders", "/s/harbor-fresh/manage/catalog", "/s/harbor-fresh/manage/customers", "/s/harbor-fresh/manage/settings"],
+    own: ["/s/harbor-fresh/manage", "/s/harbor-fresh/manage/orders", "/s/harbor-fresh/manage/catalog", "/s/harbor-fresh/manage/customers", "/s/harbor-fresh/manage/settings", "/s/harbor-fresh/manage/setup", "/s/harbor-fresh/manage/team"],
     foreign: ["/s/brightline/manage", "/s/brightline", "/s/brightline/manage/catalog"],
     foreignApi: ["/api/s/brightline/manage/orders?filter=all"],
   },
   {
     key: "brightline:owner",
-    own: ["/s/brightline/manage", "/s/brightline/manage/catalog", "/s/brightline/manage/customers"],
+    own: ["/s/brightline/manage", "/s/brightline/manage/catalog", "/s/brightline/manage/customers", "/s/brightline/manage/setup", "/s/brightline/manage/team"],
     foreign: ["/s/harbor-fresh/manage", "/s/harbor-fresh"],
     foreignApi: ["/api/s/harbor-fresh/manage/orders?filter=all"],
   },
   {
     key: "brightline:buyer",
     own: ["/s/brightline", "/s/brightline/orders"],
-    mustSee: { "/s/brightline": ["Globe Pendant, Opal Glass", "Linen Drum Shade", "Floor lamps"] },
+    mustSee: { "/s/brightline": ["Globe Pendant, Opal Glass", "Linen Drum Shade", "Floor lamps", "Hand-Blown Glass Globe Pendant", "$1,249.00"] },
     foreign: ["/s/harbor-fresh", "/s/harbor-fresh/orders", "/s/brightline/manage"],
     foreignApi: ["/api/s/harbor-fresh/manage/orders?filter=all", "/api/s/brightline/manage/orders?filter=all"],
   },
@@ -112,8 +112,8 @@ for (const width of [390, 1280]) {
   await pg.fill("#f-storeName", "E2E Candles");
   await pg.fill("#f-slug", slug);
   await pg.click("button[type=submit], form button.btn-primary");
-  await pg.waitForURL(`**/s/${slug}/manage`, { timeout: 15000 }).catch(() => {});
-  ok(new URL(pg.url()).pathname === `/s/${slug}/manage`, `sign-up lands on the new store (${pg.url()})`);
+  await pg.waitForURL(`**/s/${slug}/manage/setup`, { timeout: 15000 }).catch(() => {});
+  ok(new URL(pg.url()).pathname === `/s/${slug}/manage/setup`, `sign-up lands on the new store's setup (${pg.url()})`);
   ok((await pg.getByText("isn't open to customers yet").count()) > 0, "sign-up: confirm-email notice shows");
   const overflow = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(overflow <= 0, `sign-up: new store fits the phone screen (overflow ${overflow}px)`);

@@ -77,8 +77,18 @@ Read this first in any new session. Last updated 2026-11-06.
 - Email: printed in the `npm run dev` terminal locally (click the links there). Production needs a Resend
   account: set `RESEND_API_KEY`, `EMAIL_FROM` and `APP_URL` in `.env`.
 
+### Phase 3 (setup, looks, photos, units): done
+- "Store setup" page (sign-up lands there): what you sell, contact, delivery/pickup, look (Fresh market, Clean,
+  Warm craft, Classic), button color (auto-darkened if hard to read), logo, banner, which kinds of items you sell.
+- Products: any kind of item with the right units (weight, liquid, paper, length, single items, packed goods),
+  pack contents ("case of 24 × 12 fl oz"), "billed by actual weight", description, up to 4 photos, per-store
+  categories with an emoji. Customers see "$42.00 per case of 24 × 12 fl oz".
+- Photos are checked by their real content, re-encoded to WebP (hidden data stripped), stored in `uploads/`
+  (never committed, never public) and only shown to members of that store.
+- Fixed: signed-in pages at the new `/s/...` addresses are now marked "never cache".
+
 ## Next steps (in order)
-1. Phase 3 of the roadmap (setup questions, looks, photos, units).
+1. Phase 4 of the roadmap (QuickBooks import, linking, unit conversion, duplicate protection).
 2. QuickBooks sandbox test (needs the owner's Intuit developer keys), best after phase 4.
 3. Before real customers: Postgres, hosting with HTTPS, Privacy Policy +
    Terms (Intuit requires them), Intuit production approval, `DEMO_MODE="false"`.

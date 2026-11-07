@@ -132,7 +132,7 @@ export function ProductForm(props: {
           </select>
         </div>
         <div className="field">
-          <label htmlFor="pf-price">Price per {f.unit}</label>
+          <label htmlFor="pf-price">{f.unit === "each" ? "Price (each)" : `Price per ${f.unit}`}</label>
           <input id="pf-price" className="input input-money" required inputMode="decimal" value={f.price} onChange={(e) => set("price", e.target.value)} placeholder="0.00" />
         </div>
 

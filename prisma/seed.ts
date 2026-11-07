@@ -56,6 +56,7 @@ const lamps: P[] = [
   ["PD-310", "Dome Pendant, Spun Aluminum", "Pendants", "each", null, 118.0],
   ["SH-400", "Linen Drum Shade 14\"", "Shades", "each", null, 34.0],
   ["SH-410", "Pleated Paper Shade, case", "Shades", "case", "6 ct", 120.0],
+  ["PD-320", "Hand-Blown Glass Globe Pendant with Brushed Brass Canopy and Braided Cord, Smoke Grey, 16 inch", "Pendants", "each", null, 1249.0],
 ];
 
 type CustomerSeed = { name: string; contactName: string; email: string; phone: string; address: string };
@@ -65,6 +66,8 @@ async function seedStore(opts: {
   slug: string;
   name: string;
   niche: string;
+  look?: string;
+  about?: string;
   contact: { phone: string; email: string; address: string };
   owner: { email: string; name: string };
   staff: { email: string; name: string };
@@ -77,7 +80,7 @@ async function seedStore(opts: {
   hash: string;
 }) {
   const store = await db.store.create({
-    data: { slug: opts.slug, name: opts.name, niche: opts.niche, ...opts.contact },
+    data: { slug: opts.slug, name: opts.name, niche: opts.niche, look: opts.look, about: opts.about, ...opts.contact },
   });
 
   for (const [u, role] of [[opts.owner, "owner"], [opts.staff, "staff"]] as const) {
@@ -211,6 +214,8 @@ async function main() {
     slug: "brightline",
     name: "Brightline Lamps",
     niche: "Lamps and lampshades",
+    look: "craft",
+    about: "Hand-made lamps from our studio.",
     contact: { phone: "(555) 010-7700", email: "hello@brightline.test", address: "77 Foundry Lane" },
     owner: { email: "maker@brightline.test", name: "Rosa Chen" },
     staff: { email: "studio@brightline.test", name: "Theo Grant" },
