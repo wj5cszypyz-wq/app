@@ -22,6 +22,13 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
 }));
 
+// Work scheduled with after() (e.g. QuickBooks sync) is recorded instead of run, so tests stay offline.
+export const afterCalls: (() => unknown)[] = [];
+vi.mock("next/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/server")>();
+  return { ...actual, after: (fn: () => unknown) => void afterCalls.push(fn) };
+});
+
 export type RouteHandler = (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
 
 export type CallOptions = {

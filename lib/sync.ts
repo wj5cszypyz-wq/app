@@ -1,5 +1,5 @@
 // Turns an order into a QuickBooks invoice. Never throws: the result is recorded on the order
-// so the supplier can see exactly what happened and retry.
+// so the store can see exactly what happened and retry.
 import { db } from "./db";
 import { buildInvoicePayload } from "./invoice";
 import { isoDate } from "./orders";
@@ -8,24 +8,24 @@ import { createInvoice, ensureCustomer, ensureIncomeAccount, ensureItem, qboConf
 export async function syncOrderToQuickBooks(orderId: string) {
   const order = await db.order.findUnique({
     where: { id: orderId },
-    include: { lines: { include: { product: true } }, restaurant: true, supplier: true },
+    include: { lines: { include: { product: true } }, customer: true, store: true },
   });
   if (!order) return null;
   if (order.qboInvoiceId) return order;
 
-  if (!qboConfigured() || !order.supplier.qboRealmId) {
+  if (!qboConfigured() || !order.store.qboRealmId) {
     return db.order.update({ where: { id: orderId }, data: { qboSyncStatus: "not_connected", qboError: null } });
   }
 
   try {
-    const supplier = order.supplier;
-    const incomeAccountId = await ensureIncomeAccount(supplier);
-    const customerId = await ensureCustomer(supplier, order.restaurant);
+    const store = order.store;
+    const incomeAccountId = await ensureIncomeAccount(store);
+    const customerId = await ensureCustomer(store, order.customer);
 
     const itemIds = new Map<string, string>();
     for (const line of order.lines) {
       if (!itemIds.has(line.productId)) {
-        itemIds.set(line.productId, await ensureItem(supplier, line.product, incomeAccountId));
+        itemIds.set(line.productId, await ensureItem(store, line.product, incomeAccountId));
       }
     }
 
@@ -44,7 +44,7 @@ export async function syncOrderToQuickBooks(orderId: string) {
       })),
     });
 
-    const invoice = await createInvoice(supplier, payload, `order-${order.id}`);
+    const invoice = await createInvoice(store, payload, `order-${order.id}`);
     return db.order.update({
       where: { id: orderId },
       data: {

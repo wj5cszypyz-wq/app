@@ -1,6 +1,6 @@
 // QuickBooks Online: OAuth 2.0 connection + the few accounting calls this app needs.
 // Docs: https://developer.intuit.com/app/developer/qbo/docs/api/accounting/all-entities/invoice
-import type { Product, Restaurant, Supplier } from "@prisma/client";
+import type { Customer, Product, Store } from "@prisma/client";
 import { db } from "./db";
 import { decrypt, encrypt } from "./crypto";
 import { qboItemName, qboQuote } from "./invoice";
@@ -91,19 +91,19 @@ function tokenFields(t: TokenResponse) {
 }
 
 /** Step 2 of OAuth: trade the one-time code for tokens and save the connection. */
-export async function completeConnection(supplierId: string, code: string, realmId: string): Promise<void> {
+export async function completeConnection(storeId: string, code: string, realmId: string): Promise<void> {
   const tokens = await tokenRequest(
     new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: process.env.QBO_REDIRECT_URI! }),
   );
-  const before = await db.supplier.findUniqueOrThrow({ where: { id: supplierId }, select: { qboRealmId: true } });
+  const before = await db.store.findUniqueOrThrow({ where: { id: storeId }, select: { qboRealmId: true } });
   const sameCompany = before.qboRealmId === realmId;
   if (!sameCompany) {
     // A different QuickBooks company invalidates every stored QuickBooks id.
-    await db.restaurant.updateMany({ where: { supplierId }, data: { qboCustomerId: null } });
-    await db.product.updateMany({ where: { supplierId }, data: { qboItemId: null } });
+    await db.customer.updateMany({ where: { storeId }, data: { qboCustomerId: null } });
+    await db.product.updateMany({ where: { storeId }, data: { qboItemId: null } });
   }
-  const supplier = await db.supplier.update({
-    where: { id: supplierId },
+  const store = await db.store.update({
+    where: { id: storeId },
     data: {
       qboRealmId: realmId,
       ...(sameCompany ? {} : { qboIncomeAccountId: null }),
@@ -112,10 +112,10 @@ export async function completeConnection(supplierId: string, code: string, realm
   });
 
   try {
-    const res = await qboRequest(supplier, `companyinfo/${encodeURIComponent(realmId)}`);
+    const res = await qboRequest(store, `companyinfo/${encodeURIComponent(realmId)}`);
     const json = (await res.json()) as { CompanyInfo?: { CompanyName?: string } };
-    await db.supplier.update({
-      where: { id: supplierId },
+    await db.store.update({
+      where: { id: storeId },
       data: { qboCompanyName: json.CompanyInfo?.CompanyName ?? null },
     });
   } catch {
@@ -123,20 +123,20 @@ export async function completeConnection(supplierId: string, code: string, realm
   }
 }
 
-export async function disconnect(supplier: Supplier): Promise<void> {
-  if (supplier.qboRefreshToken && qboConfigured()) {
+export async function disconnect(store: Store): Promise<void> {
+  if (store.qboRefreshToken && qboConfigured()) {
     try {
       await fetch(REVOKE_URL, {
         method: "POST",
         headers: { Authorization: basicAuth(), Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({ token: decrypt(supplier.qboRefreshToken) }),
+        body: JSON.stringify({ token: decrypt(store.qboRefreshToken) }),
       });
     } catch {
       // Revoking is best-effort; we drop our copy of the tokens either way.
     }
   }
-  await db.supplier.update({
-    where: { id: supplier.id },
+  await db.store.update({
+    where: { id: store.id },
     data: {
       qboRealmId: null,
       qboCompanyName: null,
@@ -149,20 +149,20 @@ export async function disconnect(supplier: Supplier): Promise<void> {
 }
 
 /** Returns a valid access token, refreshing it (and saving the rotated refresh token) when needed. */
-async function accessToken(supplier: Supplier): Promise<string> {
-  if (!supplier.qboRealmId || !supplier.qboRefreshToken) throw new QboError("QuickBooks is not connected.");
+async function accessToken(store: Store): Promise<string> {
+  if (!store.qboRealmId || !store.qboRefreshToken) throw new QboError("QuickBooks is not connected.");
   const fresh =
-    supplier.qboAccessToken &&
-    supplier.qboAccessExpiresAt &&
-    supplier.qboAccessExpiresAt.getTime() - Date.now() > 5 * 60_000;
-  if (fresh) return decrypt(supplier.qboAccessToken!);
+    store.qboAccessToken &&
+    store.qboAccessExpiresAt &&
+    store.qboAccessExpiresAt.getTime() - Date.now() > 5 * 60_000;
+  if (fresh) return decrypt(store.qboAccessToken!);
 
   const tokens = await tokenRequest(
-    new URLSearchParams({ grant_type: "refresh_token", refresh_token: decrypt(supplier.qboRefreshToken) }),
+    new URLSearchParams({ grant_type: "refresh_token", refresh_token: decrypt(store.qboRefreshToken) }),
   );
   const fields = tokenFields(tokens);
-  await db.supplier.update({ where: { id: supplier.id }, data: fields });
-  Object.assign(supplier, fields);
+  await db.store.update({ where: { id: store.id }, data: fields });
+  Object.assign(store, fields);
   return tokens.access_token;
 }
 
@@ -184,9 +184,9 @@ type RequestOptions = {
   query?: Record<string, string>;
 };
 
-async function qboRequest(supplier: Supplier, path: string, opts: RequestOptions = {}): Promise<Response> {
-  const token = await accessToken(supplier);
-  const url = new URL(`${apiBase()}/v3/company/${encodeURIComponent(supplier.qboRealmId!)}/${path}`);
+async function qboRequest(store: Store, path: string, opts: RequestOptions = {}): Promise<Response> {
+  const token = await accessToken(store);
+  const url = new URL(`${apiBase()}/v3/company/${encodeURIComponent(store.qboRealmId!)}/${path}`);
   url.searchParams.set("minorversion", MINOR_VERSION);
   for (const [k, v] of Object.entries(opts.query ?? {})) url.searchParams.set(k, v);
 
@@ -207,8 +207,8 @@ async function qboRequest(supplier: Supplier, path: string, opts: RequestOptions
   return res;
 }
 
-async function query<T>(supplier: Supplier, sql: string): Promise<T[]> {
-  const res = await qboRequest(supplier, "query", { query: { query: sql } });
+async function query<T>(store: Store, sql: string): Promise<T[]> {
+  const res = await qboRequest(store, "query", { query: { query: sql } });
   const json = (await res.json()) as { QueryResponse?: Record<string, unknown> };
   const qr = json.QueryResponse ?? {};
   const list = Object.values(qr).find(Array.isArray);
@@ -218,27 +218,27 @@ async function query<T>(supplier: Supplier, sql: string): Promise<T[]> {
 type Ref = { Id: string; Name?: string; DisplayName?: string; DocNumber?: string };
 
 /** Picks the income account new items post to (prefers "Sales of Product Income"). */
-export async function ensureIncomeAccount(supplier: Supplier): Promise<string> {
-  if (supplier.qboIncomeAccountId) return supplier.qboIncomeAccountId;
-  const accounts = await query<Ref>(supplier, "select * from Account where AccountType = 'Income' MAXRESULTS 100");
+export async function ensureIncomeAccount(store: Store): Promise<string> {
+  if (store.qboIncomeAccountId) return store.qboIncomeAccountId;
+  const accounts = await query<Ref>(store, "select * from Account where AccountType = 'Income' MAXRESULTS 100");
   if (accounts.length === 0) throw new QboError("No Income account found in QuickBooks. Add one, then retry.");
   const pick =
     accounts.find((a) => a.Name === "Sales of Product Income") ??
     accounts.find((a) => /sales/i.test(a.Name ?? "")) ??
     accounts[0];
-  await db.supplier.update({ where: { id: supplier.id }, data: { qboIncomeAccountId: pick.Id } });
-  supplier.qboIncomeAccountId = pick.Id;
+  await db.store.update({ where: { id: store.id }, data: { qboIncomeAccountId: pick.Id } });
+  store.qboIncomeAccountId = pick.Id;
   return pick.Id;
 }
 
 /** Finds the restaurant in QuickBooks by name, or creates it as a Customer. */
-export async function ensureCustomer(supplier: Supplier, r: Restaurant): Promise<string> {
+export async function ensureCustomer(store: Store, r: Customer): Promise<string> {
   if (r.qboCustomerId) return r.qboCustomerId;
   const displayName = r.name.replace(/:/g, "-").slice(0, 500);
-  const found = await query<Ref>(supplier, `select * from Customer where DisplayName = ${qboQuote(displayName)}`);
+  const found = await query<Ref>(store, `select * from Customer where DisplayName = ${qboQuote(displayName)}`);
   let id = found[0]?.Id;
   if (!id) {
-    const res = await qboRequest(supplier, "customer", {
+    const res = await qboRequest(store, "customer", {
       method: "POST",
       body: {
         DisplayName: displayName,
@@ -251,18 +251,18 @@ export async function ensureCustomer(supplier: Supplier, r: Restaurant): Promise
     });
     id = ((await res.json()) as { Customer: Ref }).Customer.Id;
   }
-  await db.restaurant.update({ where: { id: r.id }, data: { qboCustomerId: id } });
+  await db.customer.update({ where: { id: r.id }, data: { qboCustomerId: id } });
   return id;
 }
 
 /** Finds the product in QuickBooks by name, or creates it as a Non-inventory item. */
-export async function ensureItem(supplier: Supplier, p: Product, incomeAccountId: string): Promise<string> {
+export async function ensureItem(store: Store, p: Product, incomeAccountId: string): Promise<string> {
   if (p.qboItemId) return p.qboItemId;
   const name = qboItemName(p.name, p.sku);
-  const found = await query<Ref>(supplier, `select * from Item where Name = ${qboQuote(name)}`);
+  const found = await query<Ref>(store, `select * from Item where Name = ${qboQuote(name)}`);
   let id = found[0]?.Id;
   if (!id) {
-    const res = await qboRequest(supplier, "item", {
+    const res = await qboRequest(store, "item", {
       method: "POST",
       body: {
         Name: name,
@@ -280,12 +280,12 @@ export async function ensureItem(supplier: Supplier, p: Product, incomeAccountId
 }
 
 /** Creates the invoice. requestId makes retries safe: QuickBooks won't create a duplicate. */
-export async function createInvoice(supplier: Supplier, payload: unknown, requestId: string): Promise<Ref> {
-  const res = await qboRequest(supplier, "invoice", { method: "POST", body: payload, query: { requestid: requestId } });
+export async function createInvoice(store: Store, payload: unknown, requestId: string): Promise<Ref> {
+  const res = await qboRequest(store, "invoice", { method: "POST", body: payload, query: { requestid: requestId } });
   return ((await res.json()) as { Invoice: Ref }).Invoice;
 }
 
-export async function invoicePdf(supplier: Supplier, invoiceId: string): Promise<ArrayBuffer> {
-  const res = await qboRequest(supplier, `invoice/${encodeURIComponent(invoiceId)}/pdf`, { accept: "application/pdf" });
+export async function invoicePdf(store: Store, invoiceId: string): Promise<ArrayBuffer> {
+  const res = await qboRequest(store, `invoice/${encodeURIComponent(invoiceId)}/pdf`, { accept: "application/pdf" });
   return res.arrayBuffer();
 }

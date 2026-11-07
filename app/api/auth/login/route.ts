@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import { listMembershipsForUser } from "@/lib/data/stores";
+import { safeNextPath } from "@/lib/next-path";
 import { clientIp, hit, reset } from "@/lib/rate-limit";
 import { cookieOptions, createSession, SESSION_COOKIE } from "@/lib/session";
 
@@ -37,7 +39,9 @@ export async function POST(req: Request) {
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, cookieOptions());
 
-  const home = user.role === "supplier" ? "/supplier" : "/shop";
-  const next = typeof body.next === "string" && (body.next === home || body.next.startsWith(`${home}/`)) ? body.next : home;
-  return Response.json({ redirect: next });
+  const stores = await listMembershipsForUser(user.id);
+  const home =
+    stores.length === 1 ? (stores[0].role === "buyer" ? `/s/${stores[0].slug}` : `/s/${stores[0].slug}/manage`) : "/stores";
+  const next = safeNextPath(body.next, stores.map((s) => s.slug));
+  return Response.json({ redirect: next ?? home });
 }
