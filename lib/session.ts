@@ -10,13 +10,12 @@ export { SESSION_COOKIE } from "./cookie-name";
 
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14; // 14 days, renewed while in use
 
+// Who is signed in. Which stores they can use is checked per request in lib/scope.ts.
 export type Session = {
   sessionId: string;
   userId: string;
-  role: "supplier" | "buyer";
-  supplierId: string;
-  restaurantId: string | null;
   name: string;
+  isPlatformAdmin: boolean;
 };
 
 export function hashToken(token: string): string {
@@ -62,16 +61,7 @@ export async function readSession(token: string | undefined): Promise<Session | 
   }
 
   const u = row.user;
-  if (u.role !== "supplier" && u.role !== "buyer") return null;
-  if (u.role === "buyer" && !u.restaurantId) return null;
-  return {
-    sessionId: id,
-    userId: u.id,
-    role: u.role,
-    supplierId: u.supplierId,
-    restaurantId: u.restaurantId,
-    name: u.name,
-  };
+  return { sessionId: id, userId: u.id, name: u.name, isPlatformAdmin: u.isPlatformAdmin };
 }
 
 export async function destroySession(token: string | undefined): Promise<void> {
