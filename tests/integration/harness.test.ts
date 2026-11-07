@@ -11,3 +11,14 @@ describe("integration harness", () => {
     expect(Number(rows[0].ok)).toBe(1);
   });
 });
+
+describe("two-store fixtures", () => {
+  it("creates a store with an owner, staff and two buyers", async () => {
+    const { makeStore } = await import("../helpers/fixtures");
+    const s = await makeStore("fixture-check");
+    const roles = (await db.membership.findMany({ where: { storeId: s.store.id } })).map((m) => m.role).sort();
+    expect(roles).toEqual(["buyer", "buyer", "owner", "staff"]);
+    expect(s.orderA.customerId).toBe(s.customerA.id);
+    expect(s.tokens.owner.length).toBeGreaterThan(20);
+  });
+});

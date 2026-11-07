@@ -4,6 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Spinner } from "@/components/status";
 
+const DEMO_STORES = [
+  { slug: "harbor-fresh", name: "Harbor Fresh (produce wholesaler)", icon: "🥬", customer: "Juniper Bistro", seller: "Dana, owner" },
+  { slug: "brightline", name: "Brightline Lamps (lamp maker)", icon: "💡", customer: "Oak & Ember Home", seller: "Rosa, owner" },
+] as const;
+
 export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -40,21 +45,26 @@ export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
     <div className="stack" style={{ gap: 22 }}>
       <div>
         <h1>Sign in</h1>
-        <p className="muted" style={{ margin: "6px 0 0" }}>For restaurants and suppliers.</p>
+        <p className="muted" style={{ margin: "6px 0 0" }}>For sellers and their customers.</p>
       </div>
 
       {demo && (
         <>
-          <div className="demo-grid">
-            <button className="demo" type="button" disabled={busy} onClick={() => send("/api/auth/demo", { role: "buyer" })}>
-              <b>🍽️ Try as restaurant</b>
-              <span>Juniper Bistro</span>
-            </button>
-            <button className="demo" type="button" disabled={busy} onClick={() => send("/api/auth/demo", { role: "supplier" })}>
-              <b>🚚 Try as supplier</b>
-              <span>Harbor Fresh</span>
-            </button>
-          </div>
+          {DEMO_STORES.map((d) => (
+            <div key={d.slug} className="stack" style={{ gap: 8 }}>
+              <div className="demo-store">{d.icon} {d.name}</div>
+              <div className="demo-grid">
+                <button className="demo" type="button" disabled={busy} onClick={() => send("/api/auth/demo", { key: `${d.slug}:buyer` })}>
+                  <b>Try as customer</b>
+                  <span>{d.customer}</span>
+                </button>
+                <button className="demo" type="button" disabled={busy} onClick={() => send("/api/auth/demo", { key: `${d.slug}:owner` })}>
+                  <b>Try as seller</b>
+                  <span>{d.seller}</span>
+                </button>
+              </div>
+            </div>
+          ))}
           <div className="divider">or sign in with email</div>
         </>
       )}

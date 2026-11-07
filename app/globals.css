@@ -338,6 +338,7 @@ h3 { font-size: 15px; }
 .auth-form { display: grid; place-items: center; padding: 40px 20px; }
 .auth-card { width: 100%; max-width: 390px; }
 .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.demo-store { font-size: 13px; font-weight: 600; color: var(--muted); }
 .demo { text-align: left; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer; }
 .demo:hover { border-color: var(--green); background: #f6fbf7; }
 .demo b { display: block; font-size: 14px; }

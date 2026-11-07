@@ -7,10 +7,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// A wholesaler (produce, dairy, meat...). Each supplier connects its own QuickBooks company.
-model Supplier {
+// A seller's store. Each store is fully separate and connects its own QuickBooks company.
+// status: "active" | "suspended"
+model Store {
   id        String   @id @default(cuid())
+  slug      String   @unique
   name      String
+  niche     String?
+  status    String   @default("active")
   phone     String?
   email     String?
   address   String?
@@ -25,25 +29,38 @@ model Supplier {
   qboRefreshExpiresAt DateTime?
   qboIncomeAccountId  String?
 
-  users       User[]
-  restaurants Restaurant[]
+  memberships Membership[]
+  customers   Customer[]
   products    Product[]
   orders      Order[]
 }
 
-// role: "supplier" (wholesaler staff) or "buyer" (restaurant staff)
 model User {
-  id           String      @id @default(cuid())
-  email        String      @unique
-  name         String
-  passwordHash String
-  role         String
-  supplierId   String
-  supplier     Supplier    @relation(fields: [supplierId], references: [id])
-  restaurantId String?
-  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
-  createdAt    DateTime    @default(now())
-  sessions     Session[]
+  id              String       @id @default(cuid())
+  email           String       @unique
+  name            String
+  passwordHash    String
+  isPlatformAdmin Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  sessions        Session[]
+  memberships     Membership[]
+}
+
+// Which store a user can use, and how. A user can belong to several stores.
+// role: "owner" | "staff" | "buyer" (buyers always have a customerId)
+model Membership {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId    String
+  store      Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  role       String
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@unique([userId, storeId])
+  @@index([storeId])
 }
 
 // Server-side login sessions. The browser only holds a random token; we store its SHA-256 hash,
@@ -58,11 +75,11 @@ model Session {
   @@index([userId])
 }
 
-// A restaurant that buys from a supplier. Becomes a Customer in QuickBooks.
-model Restaurant {
+// A business or person that buys from a store. Becomes a Customer in QuickBooks.
+model Customer {
   id            String          @id @default(cuid())
-  supplierId    String
-  supplier      Supplier        @relation(fields: [supplierId], references: [id])
+  storeId       String
+  store         Store           @relation(fields: [storeId], references: [id])
   name          String
   contactName   String?
   email         String?
@@ -70,16 +87,18 @@ model Restaurant {
   address       String?
   qboCustomerId String?
   createdAt     DateTime        @default(now())
-  users         User[]
+  memberships   Membership[]
   orders        Order[]
   prices        CustomerPrice[]
+
+  @@index([storeId])
 }
 
 // unit: "case" | "lb" | "each" | "dozen" | "gal"
 model Product {
   id         String          @id @default(cuid())
-  supplierId String
-  supplier   Supplier        @relation(fields: [supplierId], references: [id])
+  storeId    String
+  store      Store           @relation(fields: [storeId], references: [id])
   sku        String
   name       String
   category   String
@@ -94,29 +113,29 @@ model Product {
   prices     CustomerPrice[]
   lines      OrderLine[]
 
-  @@unique([supplierId, sku])
+  @@unique([storeId, sku])
 }
 
-// Per-restaurant price that overrides the product's list price.
+// Per-customer price that overrides the product's list price.
 model CustomerPrice {
   id           String     @id @default(cuid())
-  restaurantId String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  customerId   String
+  customer     Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
   productId    String
   product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   priceCents   Int
 
-  @@unique([restaurantId, productId])
+  @@unique([customerId, productId])
 }
 
 // status: "new" | "packing" | "ready" | "delivered" | "cancelled"
 // qboSyncStatus: "pending" | "synced" | "failed" | "not_connected"
 model Order {
   id            String      @id @default(cuid())
-  supplierId    String
-  supplier      Supplier    @relation(fields: [supplierId], references: [id])
-  restaurantId  String
-  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+  storeId       String
+  store         Store       @relation(fields: [storeId], references: [id])
+  customerId    String
+  customer      Customer    @relation(fields: [customerId], references: [id])
   number        Int
   status        String      @default("new")
   deliveryDate  DateTime?
@@ -133,8 +152,8 @@ model Order {
 
   lines OrderLine[]
 
-  @@unique([supplierId, number])
-  @@index([supplierId, createdAt])
+  @@unique([storeId, number])
+  @@index([storeId, createdAt])
 }
 
 // Name/price are copied at order time so old invoices never change.
