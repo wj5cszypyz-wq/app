@@ -18,7 +18,7 @@ Short rules are in `CLAUDE.md`; this file has the details.
   QuickBooks as Bills, price tracking), marketplace, rush-order fees. No per-order fees for buyers.
 
 ## 2. Name and domain
-- **ReorderPal**, domain **reorderpal.com** (owner bought it 2026-11-07; registrar not recorded here).
+- **ReorderPal**, domain **reorderpal.com** (owner bought it 2026-11-07 at **Cloudflare**; DNS is managed there).
 - Name history: "Larder" (placeholder) → "OrderDock" (dropped: orderdock.com taken since 2004 and an
   "OrderDock" restaurant-ordering app already exists) → **ReorderPal** (.com was free, no same-name app found).
 - Set in `lib/brand.ts`; internal names match (`reorderpal_sid` cookie, `reorderpal_*` browser keys).

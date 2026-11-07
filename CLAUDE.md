@@ -4,7 +4,7 @@ Claude Code loads this file automatically. Full context lives in **HANDOFF.md**:
 anything, and keep it up to date at the end of every piece of work (what changed, what's next).
 
 ## The product
-- **ReorderPal** (domain **reorderpal.com**, bought by the owner on 2026-11-07). Name set in `lib/brand.ts`.
+- **ReorderPal** (domain **reorderpal.com**, bought by the owner on 2026-11-07 at Cloudflare). Name set in `lib/brand.ts`.
 - A store builder for **any seller** (produce wholesalers, lamp makers, any niche). Each seller gets their
   own separate store; their business customers order from their phone instead of calling; **every order
   becomes a QuickBooks Online invoice**. Sellers pay a monthly fee; their customers use it free.
