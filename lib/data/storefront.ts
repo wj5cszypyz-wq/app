@@ -14,13 +14,37 @@ export async function loadStorefront(ctx: StoreCtx) {
     id: p.id,
     sku: p.sku,
     name: p.name,
+    description: p.description,
     category: p.category,
     unit: p.unit,
+    byWeight: p.byWeight,
+    cover: coverId(p.imageIds),
     packSize: p.packSize,
     inStock: p.inStock,
     listPriceCents: p.priceCents,
     priceCents: custom.get(p.id) ?? p.priceCents,
   }));
+}
+
+function coverId(imageIds: string | null): string | null {
+  try {
+    const v = imageIds ? JSON.parse(imageIds) : [];
+    return Array.isArray(v) && typeof v[0] === "string" ? v[0] : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Category names in the seller's order, with their emoji. */
+export async function storefrontCategories(ctx: StoreCtx) {
+  const { storeId } = asBuyer(ctx);
+  return db.category.findMany({ where: { storeId }, orderBy: [{ sort: "asc" }, { name: "asc" }], select: { name: true, emoji: true } });
+}
+
+/** Store details shown at the top of the storefront. */
+export async function storefrontIntro(ctx: StoreCtx) {
+  const { storeId } = asBuyer(ctx);
+  return db.store.findUniqueOrThrow({ where: { id: storeId }, select: { about: true, bannerId: true, fulfillment: true, phone: true } });
 }
 
 export type StoreProduct = Awaited<ReturnType<typeof loadStorefront>>[number];

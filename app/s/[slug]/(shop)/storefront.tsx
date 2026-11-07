@@ -6,14 +6,14 @@ import { IconArrow, IconCart, IconPlus, IconSearch, IconX } from "@/components/i
 import { Spinner } from "@/components/status";
 import { useToast } from "@/components/toast";
 import { loadCart, saveCart, type Cart } from "@/lib/cart";
-import { CATEGORY_ICON, categoriesOf, isValidQty } from "@/lib/catalog";
+import { categoriesOf, isValidQty } from "@/lib/catalog";
+import { allowsDecimal } from "@/lib/units";
 import { formatMoney, formatQty } from "@/lib/money";
 import { lineTotal } from "@/lib/orders";
 import type { StoreProduct } from "@/lib/data/storefront";
 import { useStorePaths } from "@/components/use-store";
 
 const USUAL = "Order again";
-const icon = (category: string) => (category === USUAL ? "🔁" : CATEGORY_ICON[category] ?? "📦");
 
 function Stepper({ p, qty, onChange }: { p: StoreProduct; qty: number; onChange: (q: number) => void }) {
   const [text, setText] = useState(formatQty(qty));
@@ -32,7 +32,7 @@ function Stepper({ p, qty, onChange }: { p: StoreProduct; qty: number; onChange:
       <button aria-label={`Less ${p.name}`} onClick={() => onChange(Math.max(0, Math.round((qty - step) * 100) / 100))}>−</button>
       <input
         aria-label={`Quantity of ${p.name}`}
-        inputMode={p.unit === "lb" ? "decimal" : "numeric"}
+        inputMode={allowsDecimal(p.unit) ? "decimal" : "numeric"}
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={(e) => commit(e.target.value)}
@@ -50,6 +50,11 @@ export function Storefront(props: {
   usualIds: string[];
   today: string;
   defaultDelivery: string;
+  categoryOrder: string[];
+  icons: Record<string, string>;
+  about: string | null;
+  bannerId: string | null;
+  fulfillment: string;
 }) {
   const router = useRouter();
   const paths = useStorePaths();
@@ -97,7 +102,13 @@ export function Storefront(props: {
       return next;
     });
 
-  const categories = useMemo(() => categoriesOf(props.products), [props.products]);
+  const icon = (category: string) => (category === USUAL ? "🔁" : props.icons[category] ?? "📦");
+  const categories = useMemo(() => {
+    const used = new Set(props.products.map((p) => p.category));
+    const ordered = props.categoryOrder.filter((c) => used.has(c));
+    return [...ordered, ...categoriesOf(props.products).filter((c) => !ordered.includes(c))];
+  }, [props.products, props.categoryOrder]);
+  const dateLabel = props.fulfillment === "pickup" ? "Pickup date" : props.fulfillment === "both" ? "Delivery or pickup date" : "Delivery date";
 
   const groups = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -170,15 +181,19 @@ export function Storefront(props: {
 
       <section style={{ minWidth: 0 }}>
         <div style={{ marginBottom: 14 }}>
-          <h1>What do you need today, {props.firstName}?</h1>
-          <p className="muted" style={{ margin: "6px 0 16px" }}>Prices shown are your prices.</p>
+          {props.bannerId && (
+            // eslint-disable-next-line @next/next/no-img-element -- served by our access-checked route
+            <img className="shop-banner" src={`/api/files/${props.bannerId}`} alt="" />
+          )}
+          <h1>{props.firstName ? `What do you need today, ${props.firstName}?` : "What do you need today?"}</h1>
+          <p className="muted" style={{ margin: "6px 0 16px" }}>{props.about ? `${props.about} ` : ""}Prices shown are your prices.</p>
           <div className="search">
             <IconSearch />
             <input
               ref={searchRef}
               className="input"
               type="search"
-              placeholder="Search products, e.g. romaine or butter"
+              placeholder="Search products"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               aria-label="Search products"
@@ -213,18 +228,27 @@ export function Storefront(props: {
                 const deal = p.priceCents < p.listPriceCents;
                 return (
                   <div key={`${g.name}-${p.id}`} className={`pitem ${qty ? "in-cart" : ""} ${p.inStock ? "" : "out"}`}>
-                    <div className="ptile" aria-hidden>{icon(p.category)}</div>
+                    <div className="ptile" aria-hidden>
+                      {p.cover ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- served by our access-checked route
+                        <img src={`/api/files/${p.cover}`} alt="" loading="lazy" />
+                      ) : (
+                        icon(p.category)
+                      )}
+                    </div>
                     <div style={{ minWidth: 0 }}>
                       <div className="pname">{p.name}</div>
+                      {p.description && <div className="pdesc">{p.description}</div>}
                       <div className="pmeta">
                         {p.packSize && <span>{p.packSize}</span>}
+                        {p.byWeight && <span>billed by weight</span>}
                         <span className="dim">#{p.sku}</span>
                         {!p.inStock && <span className="oos">Out of stock</span>}
                       </div>
                     </div>
                     <div className="pprice">
                       <div className="num">{formatMoney(p.priceCents)}</div>
-                      <div className="per">per {p.unit}</div>
+                      <div className="per">{p.unit === "each" ? "each" : `per ${p.unit}`}</div>
                       {deal && <div className="deal">Save {formatMoney(p.listPriceCents - p.priceCents)}</div>}
                     </div>
                     <div className="pact">
@@ -278,12 +302,12 @@ export function Storefront(props: {
         <div className="cart-foot">
           <div className="grid-form" style={{ gridTemplateColumns: "1fr" }}>
             <div className="field">
-              <label htmlFor="delivery">Delivery date</label>
+              <label htmlFor="delivery">{dateLabel}</label>
               <input id="delivery" className="input" type="date" min={props.today} value={delivery} onChange={(e) => setDelivery(e.target.value)} />
             </div>
             <div className="field">
               <label htmlFor="notes">Note for the seller</label>
-              <textarea id="notes" className="textarea" rows={2} placeholder="Back door after 7am, ripe avocados please…" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
+              <textarea id="notes" className="textarea" rows={2} placeholder="Anything the seller should know?" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} />
             </div>
           </div>
           <div className="cart-total">
