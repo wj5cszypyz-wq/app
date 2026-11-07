@@ -44,6 +44,7 @@ export async function syncOrderToQuickBooks(orderId: string) {
 
     const payload = buildInvoicePayload({
       orderNumber: order.number,
+      reissue: order.qboAttempt,
       customerId,
       txnDate: isoDate(order.createdAt),
       dueDate: order.deliveryDate ? isoDate(order.deliveryDate) : null,

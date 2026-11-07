@@ -11,6 +11,7 @@ export type InvoiceLineInput = {
 
 export type InvoiceInput = {
   orderNumber: number;
+  reissue?: number; // 0 for the first invoice; 1, 2... after a reopened order's invoice was voided
   customerId: string;
   txnDate: string; // YYYY-MM-DD
   dueDate?: string | null;
@@ -20,7 +21,7 @@ export type InvoiceInput = {
 
 export function buildInvoicePayload(input: InvoiceInput) {
   return {
-    DocNumber: `ORD-${input.orderNumber}`.slice(0, 21),
+    DocNumber: (input.reissue ? `ORD-${input.orderNumber}-${input.reissue + 1}` : `ORD-${input.orderNumber}`).slice(0, 21),
     TxnDate: input.txnDate,
     ...(input.dueDate ? { DueDate: input.dueDate } : {}),
     CustomerRef: { value: input.customerId },

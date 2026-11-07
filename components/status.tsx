@@ -10,6 +10,9 @@ const SYNC: Record<string, { label: string; icon: typeof IconCheck }> = {
   pending: { label: "Sending…", icon: IconSync },
   failed: { label: "Sync failed", icon: IconAlert },
   not_connected: { label: "Not connected", icon: IconLink },
+  syncing: { label: "Sending…", icon: IconSync },
+  voided: { label: "Invoice voided", icon: IconCheck },
+  void_failed: { label: "Void in QuickBooks", icon: IconAlert },
 };
 
 export function SyncBadge({ status, doc }: { status: string; doc?: string | null }) {

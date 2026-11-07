@@ -2,6 +2,7 @@
 import { ORDER_STATUSES, type OrderStatus } from "../catalog";
 import { db } from "../db";
 import { buildLines, type OrderInput, type PricedProduct } from "../orders";
+import { voidInvoice } from "../qbo";
 import type { StoreCtx } from "../scope";
 import { DataError } from "./errors";
 import { asBuyer, asManager } from "./guard";
@@ -157,12 +158,42 @@ export async function placeOrder(ctx: StoreCtx, input: OrderInput): Promise<{ id
   throw new DataError("Couldn't place the order. Please try again.", 409);
 }
 
-/** Changes an order's status; null if the order isn't in this store. */
+/**
+ * Changes an order's status; null if the order isn't in this store.
+ * Cancelling an order that has a QuickBooks invoice voids that invoice. Reopening a voided order
+ * clears the link so a fresh invoice (new number, new request id) is created.
+ */
 export async function setOrderStatus(ctx: StoreCtx, id: string, status: string) {
   const { storeId } = asManager(ctx);
   if (!ORDER_STATUSES.includes(status as OrderStatus)) throw new DataError("Unknown status.");
-  const result = await db.order.updateMany({ where: { id, storeId }, data: { status } });
-  return result.count === 0 ? null : { status };
+  const order = await db.order.findFirst({ where: { id, storeId }, include: { store: true } });
+  if (!order) return null;
+
+  if (status === "cancelled" && order.status !== "cancelled" && order.qboInvoiceId) {
+    await db.order.update({ where: { id }, data: { status } });
+    try {
+      await voidInvoice(order.store, order.qboInvoiceId);
+      await db.order.update({ where: { id }, data: { qboSyncStatus: "voided", qboError: null } });
+    } catch (err) {
+      const why = err instanceof Error ? err.message : "QuickBooks error";
+      await db.order.update({
+        where: { id },
+        data: { qboSyncStatus: "void_failed", qboError: `Couldn't void invoice ${order.qboDocNumber ?? ""} (${why}). Please void it in QuickBooks.`.slice(0, 500) },
+      });
+    }
+    return { status };
+  }
+
+  if (order.status === "cancelled" && status !== "cancelled" && (order.qboSyncStatus === "voided" || order.qboSyncStatus === "void_failed")) {
+    await db.order.update({
+      where: { id },
+      data: { status, qboInvoiceId: null, qboDocNumber: null, qboSyncedAt: null, qboError: null, qboSyncStatus: "pending", qboAttempt: { increment: 1 } },
+    });
+    return { status, resync: true };
+  }
+
+  await db.order.update({ where: { id }, data: { status } });
+  return { status };
 }
 
 /** Counts for the QuickBooks settings page. */

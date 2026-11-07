@@ -161,6 +161,9 @@ h3 { font-size: 15px; }
 .sync-synced { color: var(--green); }
 .sync-pending { color: var(--blue); }
 .sync-failed { color: var(--red); }
+.sync-void_failed { color: var(--red); }
+.sync-voided { color: var(--muted); }
+.sync-syncing { color: var(--muted); }
 .sync-not_connected { color: var(--muted); }
 .sync-pending svg { animation: spin 1.2s linear infinite; }
 

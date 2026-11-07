@@ -31,13 +31,14 @@ export function OrderControls(props: { orderId: string; status: string; sync: Sy
 
   // A brand-new order is still being sent to QuickBooks: keep checking for a few seconds.
   useEffect(() => {
-    if (sync.status !== "pending") return;
+    if (sync.status !== "pending" && sync.status !== "syncing") return;
     const t = setTimeout(() => router.refresh(), 2500);
     return () => clearTimeout(t);
   }, [sync.status, router]);
   useEffect(() => setSync(props.sync), [props.sync]);
 
   async function setOrderStatus(next: string) {
+    if (next === "cancelled" && sync.status === "synced" && !confirm(`Cancel this order? Invoice ${sync.docNumber ?? ""} will be voided in QuickBooks too.`)) return;
     setBusy(next);
     const res = await fetch(paths.api(`/manage/orders/${props.orderId}`), {
       method: "PATCH",
@@ -137,7 +138,11 @@ export function OrderControls(props: { orderId: string; status: string; sync: Sy
           </>
         )}
 
-        {sync.status === "pending" && <div className="muted">Sending this order to QuickBooks…</div>}
+        {(sync.status === "pending" || sync.status === "syncing") && <div className="muted">Sending this order to QuickBooks…</div>}
+
+        {sync.status === "voided" && <div className="muted">The invoice was voided in QuickBooks when this order was cancelled. Reopening the order creates a new invoice.</div>}
+
+        {sync.status === "void_failed" && <div className="error-box">{sync.error ?? "Couldn't void the invoice. Please void it in QuickBooks."}</div>}
 
         {sync.status === "failed" && (
           <>

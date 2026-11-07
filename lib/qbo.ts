@@ -397,6 +397,13 @@ export async function createInvoice(store: Store, payload: unknown, requestId: s
   return ((await res.json()) as { Invoice: Ref }).Invoice;
 }
 
+/** Voids an invoice (QuickBooks keeps it for the record with a zero amount). */
+export async function voidInvoice(store: Store, invoiceId: string): Promise<void> {
+  const res = await qboRequest(store, `invoice/${encodeURIComponent(invoiceId)}`);
+  const { Invoice } = (await res.json()) as { Invoice: { Id: string; SyncToken: string } };
+  await qboRequest(store, "invoice", { method: "POST", body: { Id: Invoice.Id, SyncToken: Invoice.SyncToken }, query: { operation: "void" } });
+}
+
 export async function invoicePdf(store: Store, invoiceId: string): Promise<ArrayBuffer> {
   const res = await qboRequest(store, `invoice/${encodeURIComponent(invoiceId)}/pdf`, { accept: "application/pdf" });
   return res.arrayBuffer();
