@@ -2,22 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { APP_NAME } from "@/lib/brand";
-import { IconCart, IconClock, IconMark } from "./icons";
+import { IconCart, IconClock } from "./icons";
+import { StoreMark } from "./store-look";
 import { SignOutButton } from "./sign-out";
 import { useStorePaths } from "@/components/use-store";
 
-export function BuyerBar({ customer, store }: { customer: string; store: string }) {
+export function BuyerBar({ customer, store, logoId }: { customer: string; store: string; logoId: string | null }) {
   const path = usePathname();
   const paths = useStorePaths();
   const isHistory = path.startsWith(paths.shop("/orders"));
   return (
     <header className="topbar">
       <Link href={paths.shop()} className="brand">
-        <span className="brand-mark"><IconMark /></span>
-        <span>
-          <div className="brand-name">{APP_NAME}</div>
-          <div className="brand-org">from {store}</div>
+        <StoreMark name={store} logoId={logoId} />
+        <span style={{ minWidth: 0 }}>
+          <div className="brand-name">{store}</div>
+          <div className="brand-org">{customer}</div>
         </span>
       </Link>
       <nav className="topnav">
@@ -29,7 +29,7 @@ export function BuyerBar({ customer, store }: { customer: string; store: string 
         </Link>
       </nav>
       <div className="row" style={{ marginLeft: "auto" }}>
-        <Link href="/account" className="muted hide-sm" style={{ fontSize: 13 }} title="Your account">{customer}</Link>
+        <Link href="/account" className="muted hide-sm" style={{ fontSize: 13 }} title="Your account">Account</Link>
         <SignOutButton />
       </div>
     </header>

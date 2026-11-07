@@ -13,7 +13,7 @@ export async function storeHeader(ctx: StoreCtx) {
   asManager(ctx);
   return db.store.findUniqueOrThrow({
     where: { id: ctx.storeId },
-    select: { name: true, status: true, qboRealmId: true, qboCompanyName: true },
+    select: { name: true, status: true, qboRealmId: true, qboCompanyName: true, look: true, accent: true, logoId: true, setupDoneAt: true },
   });
 }
 

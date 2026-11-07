@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { IconPlus, IconSearch } from "@/components/icons";
-import { Spinner } from "@/components/status";
 import { useToast } from "@/components/toast";
 import { categoriesOf } from "@/lib/catalog";
 import type { UnitKind } from "@/lib/units";

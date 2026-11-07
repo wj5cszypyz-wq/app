@@ -10,17 +10,26 @@ datasource db {
 // A seller's store. Each store is fully separate and connects its own QuickBooks company.
 // status: "active" | "suspended"
 model Store {
-  id                   String   @id @default(cuid())
-  slug                 String   @unique
+  id                   String    @id @default(cuid())
+  slug                 String    @unique
   name                 String
   niche                String?
-  status               String   @default("active")
+  status               String    @default("active")
   // Optional public page (/join/<slug>) where new customers can ask for an account. Off by default.
-  allowAccountRequests Boolean  @default(false)
+  allowAccountRequests Boolean   @default(false)
+  // Look and profile (set in the setup questions). look: fresh|clean|craft|classic; fulfillment: delivery|pickup|both
+  look                 String    @default("fresh")
+  accent               String?
+  logoId               String?
+  bannerId             String?
+  about                String?
+  fulfillment          String    @default("delivery")
+  unitKinds            String?
+  setupDoneAt          DateTime?
   phone                String?
   email                String?
   address              String?
-  createdAt            DateTime @default(now())
+  createdAt            DateTime  @default(now())
 
   // QuickBooks Online connection (tokens are stored encrypted)
   qboRealmId          String?
@@ -37,6 +46,7 @@ model Store {
   orders          Order[]
   accountRequests AccountRequest[]
   categories      Category[]
+  uploads         Upload[]
 }
 
 model User {
@@ -236,4 +246,20 @@ model Category {
   sort    Int    @default(0)
 
   @@unique([storeId, name])
+}
+
+// An image a seller uploaded (re-encoded to WebP on the server). kind: "logo" | "banner" | "product".
+// Files live in uploads/<storeId>/<id>.webp, outside public/, and are only served to that store's members.
+model Upload {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  kind      String
+  path      String
+  width     Int
+  height    Int
+  bytes     Int
+  createdAt DateTime @default(now())
+
+  @@index([storeId])
 }

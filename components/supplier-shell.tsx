@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { APP_NAME } from "@/lib/brand";
-import { IconBox, IconHome, IconLink, IconList, IconMark, IconUsers } from "./icons";
+import { IconBox, IconHome, IconLink, IconList, IconUsers } from "./icons";
+import { StoreMark } from "./store-look";
 import { SignOutButton } from "./sign-out";
 import { useStorePaths } from "./use-store";
 
@@ -23,6 +24,7 @@ export function SupplierShell(props: {
   orgName: string;
   qboConnected: boolean;
   qboCompany: string | null;
+  logoId: string | null;
 }) {
   const path = usePathname();
   const paths = useStorePaths();
@@ -32,10 +34,10 @@ export function SupplierShell(props: {
     <div className="shell">
       <aside className="sidebar">
         <Link href={paths.manage()} className="brand">
-          <span className="brand-mark"><IconMark /></span>
-          <span>
-            <div className="brand-name">{APP_NAME}</div>
-            <div className="brand-org">{props.orgName}</div>
+          <StoreMark name={props.orgName} logoId={props.logoId} />
+          <span style={{ minWidth: 0 }}>
+            <div className="brand-name">{props.orgName}</div>
+            <div className="brand-org">{APP_NAME}</div>
           </span>
         </Link>
 

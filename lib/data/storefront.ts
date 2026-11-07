@@ -43,7 +43,7 @@ export async function buyerHeader(ctx: StoreCtx) {
   const { storeId, customerId } = asBuyer(ctx);
   const c = await db.customer.findFirstOrThrow({
     where: { id: customerId, storeId },
-    select: { name: true, store: { select: { name: true } } },
+    select: { name: true, store: { select: { name: true, look: true, accent: true, logoId: true, fulfillment: true } } },
   });
-  return { customerName: c.name, storeName: c.store.name };
+  return { customerName: c.name, storeName: c.store.name, look: c.store.look, accent: c.store.accent, logoId: c.store.logoId, fulfillment: c.store.fulfillment };
 }

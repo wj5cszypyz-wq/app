@@ -422,3 +422,23 @@ h3 { font-size: 15px; }
 .check-row input { margin-top: 3px; }
 @media (max-width: 720px) { .grid-form .span-2 { grid-column: 1 / -1; } }
 .nowrap { white-space: nowrap; }
+
+/* ---- Store looks: four plain token sets; the seller's accent overrides --green* ---- */
+.look-root { background: var(--bg); color: var(--text); min-height: 100vh; }
+[data-look="clean"] {
+  --bg: #f6f6f6; --surface: #ffffff; --surface-2: #fafafa; --line: #e4e4e4; --line-strong: #d0d0d0;
+  --text: #1d1d1d; --text-2: #383838; --muted: #6a6a6a; --dim: #9a9a9a;
+  --green: #2f3437; --green-hover: #1e2224; --green-soft: #eef0f1; --green-line: #cdd2d5;
+}
+[data-look="craft"] {
+  --bg: #f7f0e6; --surface: #fffdf9; --surface-2: #fbf5ec; --line: #eadfcd; --line-strong: #dbc9ae;
+  --text: #2a211b; --text-2: #46392f; --muted: #7a6a5c; --dim: #a8988a;
+  --green: #a84d26; --green-hover: #8f4120; --green-soft: #f7e8e0; --green-line: #e6c2ae;
+}
+[data-look="classic"] {
+  --bg: #f3f5f9; --surface: #ffffff; --surface-2: #f8f9fc; --line: #e0e5ee; --line-strong: #cbd3df;
+  --text: #152035; --text-2: #2f3b52; --muted: #5d697d; --dim: #8f99aa;
+  --green: #1f3a68; --green-hover: #172d52; --green-soft: #e6ecf5; --green-line: #b8c6de;
+}
+.store-logo { border-radius: 10px; object-fit: contain; background: var(--surface); border: 1px solid var(--line); flex: none; }
+.store-letter { display: inline-flex; align-items: center; justify-content: center; background: var(--green); color: #fff; font-weight: 700; font-size: 16px; flex: none; }
