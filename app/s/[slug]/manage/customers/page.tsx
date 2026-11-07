@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { listCustomers } from "@/lib/data/customers";
+import { listAccountRequests, storeSettings } from "@/lib/data/requests";
 import { formatMoney } from "@/lib/money";
 import { MANAGE, requireStorePage } from "@/lib/scope";
 import { AddCustomer } from "./add-customer";
+import { AccountRequests, RequestsToggle } from "./requests";
 import { ResendInvite } from "./resend-invite";
 
 export const metadata: Metadata = { title: "Customers" };
 
 export default async function CustomersPage({ params }: { params: Promise<{ slug: string }> }) {
   const ctx = await requireStorePage((await params).slug, MANAGE);
-  const customers = await listCustomers(ctx);
+  const [customers, requests, settings] = await Promise.all([listCustomers(ctx), listAccountRequests(ctx), storeSettings(ctx)]);
 
   return (
     <>
@@ -21,6 +23,9 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
         </div>
         <AddCustomer />
       </div>
+
+      {ctx.role === "owner" && <RequestsToggle initial={settings.allowAccountRequests} slug={ctx.slug} />}
+      <AccountRequests requests={requests} />
 
       <div className="panel">
         <div className="table-wrap">

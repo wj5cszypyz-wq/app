@@ -15,6 +15,8 @@ model Store {
   name      String
   niche     String?
   status    String   @default("active")
+  // Optional public page (/join/<slug>) where new customers can ask for an account. Off by default.
+  allowAccountRequests Boolean @default(false)
   phone     String?
   email     String?
   address   String?
@@ -29,10 +31,11 @@ model Store {
   qboRefreshExpiresAt DateTime?
   qboIncomeAccountId  String?
 
-  memberships Membership[]
-  customers   Customer[]
-  products    Product[]
-  orders      Order[]
+  memberships     Membership[]
+  customers       Customer[]
+  products        Product[]
+  orders          Order[]
+  accountRequests AccountRequest[]
 }
 
 model User {
@@ -195,4 +198,20 @@ model AuthToken {
 
   @@index([userId, purpose])
   @@index([email, purpose])
+}
+
+// Someone asking a store for a customer account. status: "pending" | "approved" | "declined"
+model AccountRequest {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  businessName String
+  contactName  String
+  email        String
+  phone        String?
+  message      String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+
+  @@index([storeId, status])
 }

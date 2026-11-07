@@ -2,7 +2,7 @@
 import type { Role } from "../../lib/scope";
 import type { StoreFixture } from "./fixtures";
 
-export type Ids = { order: string; product: string; customer: string; staffUser: string };
+export type Ids = { order: string; product: string; customer: string; staffUser: string; request: string };
 
 export type RouteCase = {
   file: string; // relative to app/api/s/[slug]
@@ -26,6 +26,8 @@ export const ROUTES: RouteCase[] = [
   { file: "manage/products/[id]/route.ts", method: "PATCH", path: (i) => `manage/products/${i.product}`, params: (i) => ({ id: i.product }), body: () => ({ price: "12.00" }), roles: MANAGE, okStatus: [200] },
   { file: "manage/customers/route.ts", method: "POST", path: () => "manage/customers", params: () => ({}), body: () => ({ name: `Cust ${++n}`, contactName: "Al", email: `new-${++n}@test.local` }), roles: MANAGE, okStatus: [201] },
   { file: "manage/customers/[id]/invite/route.ts", method: "POST", path: (i) => `manage/customers/${i.customer}/invite`, params: (i) => ({ id: i.customer }), roles: MANAGE, okStatus: [200, 400] },
+  { file: "manage/requests/[id]/route.ts", method: "POST", path: (i) => `manage/requests/${i.request}`, params: (i) => ({ id: i.request }), body: () => ({ action: "decline" }), roles: MANAGE, okStatus: [200] },
+  { file: "manage/store/route.ts", method: "PATCH", path: () => "manage/store", params: () => ({}), body: () => ({ allowAccountRequests: true }), roles: ["owner"], okStatus: [200] },
   { file: "manage/staff/route.ts", method: "POST", path: () => "manage/staff", params: () => ({}), body: () => ({ email: `staff-${++n}@test.local` }), roles: ["owner"], okStatus: [201] },
   { file: "manage/staff/[userId]/route.ts", method: "DELETE", path: (i) => `manage/staff/${i.staffUser}`, params: (i) => ({ userId: i.staffUser }), roles: ["owner"], okStatus: [200] },
   { file: "manage/customers/[id]/prices/route.ts", method: "PUT", path: (i) => `manage/customers/${i.customer}/prices`, params: (i) => ({ id: i.customer }), body: (f) => ({ prices: [{ productId: f.product.id, price: "9.00" }] }), roles: MANAGE, okStatus: [200] },

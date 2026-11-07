@@ -43,6 +43,10 @@ export async function makeStore(slug: string) {
   const orderA = await order(customerA.id, 1001);
   const orderB = await order(customerB.id, 1002);
 
+  const accountRequest = await db.accountRequest.create({
+    data: { storeId: store.id, businessName: `Req ${slug}`, contactName: "Req", email: `req-${slug}-${n}@test.local` },
+  });
+
   const tokens = {
     owner: await createSession(owner.id),
     staff: await createSession(staff.id),
@@ -50,7 +54,7 @@ export async function makeStore(slug: string) {
     buyerB: await createSession(buyerB.id),
   };
 
-  return { store, owner, staff, buyerA, buyerB, customerA, customerB, product, orderA, orderB, tokens };
+  return { store, owner, staff, buyerA, buyerB, customerA, customerB, product, orderA, orderB, accountRequest, tokens };
 }
 
 export type StoreFixture = Awaited<ReturnType<typeof makeStore>>;
