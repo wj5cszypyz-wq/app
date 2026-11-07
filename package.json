@@ -9,7 +9,8 @@
     "setup": "prisma db push && tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "make-admin": "tsx scripts/make-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",

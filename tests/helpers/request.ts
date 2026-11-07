@@ -29,7 +29,8 @@ vi.mock("next/server", async (importOriginal) => {
   return { ...actual, after: (fn: () => unknown) => void afterCalls.push(fn) };
 });
 
-export type RouteHandler = (req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- route handlers each declare their own params shape
+export type RouteHandler = (req: Request, ctx: { params: Promise<any> }) => Promise<Response>;
 
 export type CallOptions = {
   method: string;
