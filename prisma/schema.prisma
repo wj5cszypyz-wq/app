@@ -39,6 +39,7 @@ model Store {
   qboAccessExpiresAt  DateTime?
   qboRefreshExpiresAt DateTime?
   qboIncomeAccountId  String?
+  qboTokenVersion     Int       @default(0)
 
   memberships     Membership[]
   customers       Customer[]
@@ -177,10 +178,13 @@ model Order {
   qboDocNumber  String?
   qboSyncedAt   DateTime?
   qboError      String?
+  // Bumped when an invoiced order is reopened, so the new invoice gets a new request id and number.
+  qboAttempt    Int       @default(0)
 
   lines OrderLine[]
 
   @@unique([storeId, number])
+  @@unique([storeId, qboInvoiceId])
   @@index([storeId, createdAt])
 }
 

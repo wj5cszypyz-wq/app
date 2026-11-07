@@ -17,6 +17,18 @@ export async function syncOrderToQuickBooks(orderId: string) {
     return db.order.update({ where: { id: orderId }, data: { qboSyncStatus: "not_connected", qboError: null } });
   }
 
+  // Claim the order so two clicks (or two servers) can't send it at the same time.
+  // A claim older than 5 minutes is treated as abandoned (e.g. the server restarted mid-send).
+  const claimed = await db.order.updateMany({
+    where: {
+      id: orderId,
+      qboInvoiceId: null,
+      OR: [{ qboSyncStatus: { not: "syncing" } }, { updatedAt: { lt: new Date(Date.now() - 5 * 60_000) } }],
+    },
+    data: { qboSyncStatus: "syncing" },
+  });
+  if (claimed.count === 0) return db.order.findUnique({ where: { id: orderId } });
+
   try {
     const store = order.store;
     const incomeAccountId = await ensureIncomeAccount(store);
@@ -44,7 +56,7 @@ export async function syncOrderToQuickBooks(orderId: string) {
       })),
     });
 
-    const invoice = await createInvoice(store, payload, `order-${order.id}`);
+    const invoice = await createInvoice(store, payload, `order-${order.id}-${order.qboAttempt}`);
     return db.order.update({
       where: { id: orderId },
       data: {

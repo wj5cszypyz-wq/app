@@ -148,22 +148,52 @@ export async function disconnect(store: Store): Promise<void> {
   });
 }
 
-/** Returns a valid access token, refreshing it (and saving the rotated refresh token) when needed. */
+const refreshing = new Map<string, Promise<string>>();
+
+/**
+ * Returns a valid access token, refreshing it when needed. Refreshes are serialized per store:
+ * concurrent requests in this server share one refresh, and a version check in the database stops
+ * two servers from both saving (and so losing) a rotated refresh token.
+ */
 async function accessToken(store: Store): Promise<string> {
   if (!store.qboRealmId || !store.qboRefreshToken) throw new QboError("QuickBooks is not connected.");
-  const fresh =
-    store.qboAccessToken &&
-    store.qboAccessExpiresAt &&
-    store.qboAccessExpiresAt.getTime() - Date.now() > 5 * 60_000;
-  if (fresh) return decrypt(store.qboAccessToken!);
+  const fresh = (s: Store) =>
+    s.qboAccessToken && s.qboAccessExpiresAt && s.qboAccessExpiresAt.getTime() - Date.now() > 5 * 60_000;
+  if (fresh(store)) return decrypt(store.qboAccessToken!);
 
-  const tokens = await tokenRequest(
-    new URLSearchParams({ grant_type: "refresh_token", refresh_token: decrypt(store.qboRefreshToken) }),
-  );
-  const fields = tokenFields(tokens);
-  await db.store.update({ where: { id: store.id }, data: fields });
-  Object.assign(store, fields);
-  return tokens.access_token;
+  const inFlight = refreshing.get(store.id);
+  if (inFlight) return inFlight;
+
+  const job = (async () => {
+    const current = await db.store.findUniqueOrThrow({ where: { id: store.id } });
+    if (fresh(current)) {
+      Object.assign(store, current);
+      return decrypt(current.qboAccessToken!);
+    }
+    if (!current.qboRefreshToken) throw new QboError("QuickBooks is not connected.");
+    const tokens = await tokenRequest(
+      new URLSearchParams({ grant_type: "refresh_token", refresh_token: decrypt(current.qboRefreshToken) }),
+    );
+    const fields = tokenFields(tokens);
+    const saved = await db.store.updateMany({
+      where: { id: store.id, qboTokenVersion: current.qboTokenVersion },
+      data: { ...fields, qboTokenVersion: { increment: 1 } },
+    });
+    if (saved.count === 0) {
+      // Another server refreshed at the same moment; use what it saved.
+      const latest = await db.store.findUniqueOrThrow({ where: { id: store.id } });
+      Object.assign(store, latest);
+      return decrypt(latest.qboAccessToken!);
+    }
+    Object.assign(store, fields, { qboTokenVersion: current.qboTokenVersion + 1 });
+    return tokens.access_token;
+  })();
+  refreshing.set(store.id, job);
+  try {
+    return await job;
+  } finally {
+    refreshing.delete(store.id);
+  }
 }
 
 function faultMessage(text: string): string | null {
@@ -205,6 +235,50 @@ async function qboRequest(store: Store, path: string, opts: RequestOptions = {})
     throw new QboError(faultMessage(text) ?? `QuickBooks returned an error (${res.status}).`, res.status);
   }
   return res;
+}
+
+/** Reads every row of a query, 1000 at a time (QuickBooks' page limit). */
+async function queryAll<T>(store: Store, sql: string, cap = 20_000): Promise<T[]> {
+  const out: T[] = [];
+  for (let start = 1; out.length < cap; start += 1000) {
+    const page = await query<T>(store, `${sql} STARTPOSITION ${start} MAXRESULTS 1000`);
+    out.push(...page);
+    if (page.length < 1000) break;
+  }
+  return out;
+}
+
+export type QboItem = {
+  Id: string;
+  Name: string;
+  FullyQualifiedName?: string;
+  Sku?: string;
+  Description?: string;
+  UnitPrice?: number;
+  Type?: string;
+  QtyOnHand?: number;
+  Active?: boolean;
+};
+
+export type QboCustomer = {
+  Id: string;
+  DisplayName: string;
+  CompanyName?: string;
+  GivenName?: string;
+  FamilyName?: string;
+  PrimaryEmailAddr?: { Address?: string };
+  PrimaryPhone?: { FreeFormNumber?: string };
+  BillAddr?: { Line1?: string; City?: string; CountrySubDivisionCode?: string; PostalCode?: string };
+};
+
+/** Every active sellable item (Inventory, Non-inventory, Service). Categories and bundles are skipped. */
+export async function listAllItems(store: Store): Promise<QboItem[]> {
+  const rows = await queryAll<QboItem>(store, "select * from Item");
+  return rows.filter((i) => i.Type === "Inventory" || i.Type === "NonInventory" || i.Type === "Service");
+}
+
+export async function listAllCustomers(store: Store): Promise<QboCustomer[]> {
+  return queryAll<QboCustomer>(store, "select * from Customer");
 }
 
 async function query<T>(store: Store, sql: string): Promise<T[]> {
