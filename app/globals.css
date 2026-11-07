@@ -87,7 +87,7 @@ h3 { font-size: 15px; }
   user-select: none;
 }
 .btn:hover { background: var(--surface-2); border-color: #c4bba8; }
-.btn:active { background: #f1ede4; }
+.btn:active { background: var(--surface-2); }
 .btn:focus-visible { outline: 3px solid rgba(46, 125, 74, 0.35); outline-offset: 1px; }
 .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 .btn svg { width: 17px; height: 17px; flex: none; }
@@ -204,13 +204,13 @@ h3 { font-size: 15px; }
 .stat { padding: 16px 18px; }
 .stat .num { font-size: 28px; font-weight: 750; margin-top: 4px; display: block; letter-spacing: -0.02em; }
 .stat .sub { font-size: 12.5px; color: var(--muted); }
-.stat.accent { border-color: var(--green-line); background: linear-gradient(180deg, #f3faf5, #fff); }
+.stat.accent { border-color: var(--green-line); background: linear-gradient(180deg, var(--green-soft), var(--surface)); }
 .stat.accent .num { color: var(--green); }
 .stat.warn { border-color: #f0c5c0; background: #fffafa; }
 .stat.warn .num { color: var(--red); }
 
 /* ── Tabs ────────────────────────────────────────────────────────────── */
-.tabs { display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--r); background: #efebe2; }
+.tabs { display: inline-flex; padding: 3px; gap: 2px; border-radius: var(--r); background: var(--bg); }
 .tab { height: 32px; padding: 0 14px; border-radius: 7px; border: 0; background: transparent; color: var(--muted); font-size: 13.5px; font-weight: 600; cursor: pointer; }
 .tab:hover { color: var(--text); }
 .tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
@@ -293,7 +293,7 @@ h3 { font-size: 15px; }
 .plist { overflow: hidden; }
 .pitem { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
 .pitem:last-child { border-bottom: 0; }
-.pitem.in-cart { background: #f6fbf7; }
+.pitem.in-cart { background: var(--green-soft); }
 .pitem.out { opacity: 0.55; }
 .ptile { width: 48px; height: 48px; border-radius: 10px; display: grid; place-items: center; font-size: 24px; background: var(--surface-2); border: 1px solid var(--line); }
 .pname { font-weight: 650; font-size: 15.5px; }
@@ -308,7 +308,7 @@ h3 { font-size: 15px; }
 .stepper button { width: 40px; height: 100%; border: 0; background: var(--green-soft); color: var(--green); font-size: 20px; font-weight: 700; cursor: pointer; }
 .stepper button:hover { background: #d6ebdc; }
 .stepper input { width: 54px; height: 100%; border: 0; background: transparent; color: var(--text); text-align: center; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.stepper input:focus { outline: none; background: #f6fbf7; }
+.stepper input:focus { outline: none; background: var(--green-soft); }
 .add-btn { min-width: 134px; --h: 42px; }
 
 .cart { position: sticky; top: 88px; display: flex; flex-direction: column; max-height: calc(100vh - 110px); }
@@ -323,7 +323,7 @@ h3 { font-size: 15px; }
 
 .mobile-cart { display: none; }
 
-.confirm-hero { display: flex; align-items: center; gap: 16px; padding: 22px; margin-bottom: 16px; border-color: var(--green-line); background: #f3faf5; }
+.confirm-hero { display: flex; align-items: center; gap: 16px; padding: 22px; margin-bottom: 16px; border-color: var(--green-line); background: var(--green-soft); }
 .confirm-ring { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--green); flex: none; }
 .confirm-ring svg { width: 26px; height: 26px; color: #fff; }
 
@@ -343,7 +343,7 @@ h3 { font-size: 15px; }
 .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .demo-store { font-size: 13px; font-weight: 600; color: var(--muted); }
 .demo { text-align: left; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--surface); cursor: pointer; }
-.demo:hover { border-color: var(--green); background: #f6fbf7; }
+.demo:hover { border-color: var(--green); background: var(--green-soft); }
 .demo b { display: block; font-size: 14px; }
 .demo span { font-size: 12.5px; color: var(--muted); }
 .divider { display: flex; align-items: center; gap: 12px; color: var(--dim); font-size: 13px; }
