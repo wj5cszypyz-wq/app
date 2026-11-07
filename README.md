@@ -1,11 +1,11 @@
-# Larder
+# OrderDock
 
 Ordering stores for any seller (produce wholesalers, lamp makers, any niche). Each seller gets their own
 separate store at `/s/<store-name>`; their customers order from their phone, each order becomes a
 QuickBooks Online invoice automatically, and the seller sees it live with a printable invoice and
 packing slip. Build plan: `docs/superpowers/plans/2026-11-07-roadmap.md`.
 
-> "Larder" is a placeholder name. Change it in `lib/brand.ts`.
+> The product name lives in `lib/brand.ts` (one place; every screen and email uses it).
 
 ## What's built
 

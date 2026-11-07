@@ -1,4 +1,4 @@
-# Larder — project hand-off
+# OrderDock — project hand-off
 
 Read this first in any new session. Last updated 2026-11-06.
 
@@ -13,7 +13,9 @@ Read this first in any new session. Last updated 2026-11-06.
   customers, QuickBooks Desktop support later.
 - **Later revenue ideas:** card/ACH payment fee via Stripe Connect, restaurant "Pro" plan (invoices into the
   restaurant's own QuickBooks as Bills, price tracking), marketplace, rush-order fees. Avoid per-order fees.
-- **"Larder" is a placeholder name.** Change it in `lib/brand.ts`.
+- **Name: OrderDock** (chosen by the owner on 2026-11-07; was "Larder"). Set in `lib/brand.ts`. Internal
+  names (cookie `larder_sid`, browser keys `larder_*`) were left unchanged on purpose; renaming them would
+  only sign everyone out.
 
 ## How the owner wants to work
 - No fluff, no made-up facts. Plain language, step by step.
