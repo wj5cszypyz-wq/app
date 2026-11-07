@@ -5,6 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { kindOf } from "../lib/units";
 
 if (process.env.NODE_ENV === "production") {
   console.error("Refusing to seed demo data in production.");
@@ -69,6 +70,7 @@ async function seedStore(opts: {
   staff: { email: string; name: string };
   customers: CustomerSeed[];
   products: P[];
+  categories: [name: string, emoji: string][];
   outOfStock: string[];
   specialPrices: [sku: string, price: number][];
   history: History;
@@ -98,12 +100,26 @@ async function seedStore(opts: {
     customers.push(customer);
   }
 
+  await db.category.createMany({
+    data: opts.categories.map(([name, emoji], sort) => ({ storeId: store.id, name, emoji, sort })),
+  });
+
   const bySku = new Map<string, Awaited<ReturnType<typeof db.product.create>>>();
   for (const [sku, name, category, unit, packSize, price] of opts.products) {
     bySku.set(
       sku,
       await db.product.create({
-        data: { storeId: store.id, sku, name, category, unit, packSize, priceCents: Math.round(price * 100) },
+        data: {
+          storeId: store.id,
+          sku,
+          name,
+          category,
+          unit,
+          unitKind: kindOf(unit) ?? "count",
+          byWeight: unit === "lb" && /~|avg|case|chub/.test(packSize ?? ""),
+          packSize,
+          priceCents: Math.round(price * 100),
+        },
       }),
     );
   }
@@ -162,6 +178,7 @@ async function main() {
   await db.user.deleteMany();
   await db.product.deleteMany();
   await db.customer.deleteMany();
+  await db.category.deleteMany();
   await db.store.deleteMany();
 
   const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
@@ -179,6 +196,7 @@ async function main() {
       { name: "Noodle Bar 88", contactName: "Ken Ito", email: "ken@noodlebar88.test", phone: "(555) 010-5500", address: "88 Harbor Blvd" },
     ],
     products: produce,
+    categories: [["Produce", "🥬"], ["Dairy & Eggs", "🧀"], ["Meat & Poultry", "🥩"], ["Seafood", "🐟"], ["Bakery", "🍞"], ["Dry Goods", "🫙"], ["Paper & Disposables", "🧻"]],
     outOfStock: ["SF-402"],
     specialPrices: [["PR-101", 35.0], ["DY-203", 129.0], ["MT-301", 2.95]],
     history: [
@@ -201,6 +219,7 @@ async function main() {
       { name: "Hotel Marlow", contactName: "Jon Avery", email: "purchasing@hotelmarlow.test", phone: "(555) 010-9900", address: "1 Marlow Square" },
     ],
     products: lamps,
+    categories: [["Floor lamps", "🛋️"], ["Desk lamps", "💡"], ["Pendants", "🏮"], ["Shades", "🪔"]],
     outOfStock: ["FL-110"],
     specialPrices: [["FL-100", 165.0], ["SH-400", 30.0]],
     history: [

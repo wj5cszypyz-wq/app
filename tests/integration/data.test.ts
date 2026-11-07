@@ -88,10 +88,10 @@ describe("products", () => {
 
   it("createProduct writes to the ctx store; same SKU allowed in another store", async () => {
     const { createProduct } = await import("../../lib/data/products");
-    const p = await createProduct(ownerA, { sku: "SKU-data-b", name: "Shared SKU", category: "Produce", unit: "each", packSize: null, priceCents: 500 });
+    const p = await createProduct(ownerA, { sku: "SKU-data-b", name: "Shared SKU", category: "Produce", unitKind: "count", unit: "each", priceCents: 500 });
     expect(p.storeId).toBe(a.store.id);
     await expect(
-      createProduct(ownerA, { sku: "SKU-data-b", name: "Dup", category: "Produce", unit: "each", packSize: null, priceCents: 500 }),
+      createProduct(ownerA, { sku: "SKU-data-b", name: "Dup", category: "Produce", unitKind: "count", unit: "each", priceCents: 500 }),
     ).rejects.toThrow(/already/);
   });
 });

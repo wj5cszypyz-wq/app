@@ -1,23 +1,15 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import { IconPlus, IconSearch, IconX } from "@/components/icons";
+import { useMemo, useState } from "react";
+import { IconPlus, IconSearch } from "@/components/icons";
 import { Spinner } from "@/components/status";
 import { useToast } from "@/components/toast";
-import { CATEGORIES, UNITS, categoriesOf } from "@/lib/catalog";
+import { categoriesOf } from "@/lib/catalog";
+import type { UnitKind } from "@/lib/units";
+import { ProductForm } from "./product-form";
+import type { Category, Product } from "./types";
 import { formatMoney } from "@/lib/money";
 import { useStorePaths } from "@/components/use-store";
-
-type Product = {
-  id: string;
-  sku: string;
-  name: string;
-  category: string;
-  unit: string;
-  packSize: string | null;
-  priceCents: number;
-  inStock: boolean;
-};
 
 async function patch(url: string, body: object) {
   const res = await fetch(url, {
@@ -74,15 +66,14 @@ function PriceCell({ p, onSaved }: { p: Product; onSaved: (cents: number) => voi
   );
 }
 
-export function CatalogManager({ initial }: { initial: Product[] }) {
+export function CatalogManager({ initial, categories: initialCategories, defaultKind }: { initial: Product[]; categories: Category[]; defaultKind: UnitKind }) {
   const notify = useToast();
   const paths = useStorePaths();
   const [products, setProducts] = useState(initial);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
-  const [adding, setAdding] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ sku: "", name: "", category: CATEGORIES[0] as string, unit: "case", packSize: "", price: "" });
+  const [editing, setEditing] = useState<Product | "new" | null>(null);
+  const [categories, setCategories] = useState(initialCategories);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -116,20 +107,21 @@ export function CatalogManager({ initial }: { initial: Product[] }) {
     }
   }
 
-  async function add(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    const res = await fetch(paths.api("/manage/products"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const json = await res.json();
-    setBusy(false);
-    if (!res.ok) return notify("error", "Couldn't add product", json.error);
-    setProducts((all) => [...all, json.product].sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name)));
-    setForm({ ...form, sku: "", name: "", packSize: "", price: "" });
-    notify("success", "Product added", json.product.name);
+  async function refreshCategories() {
+    const res = await fetch(paths.api("/manage/categories"), { cache: "no-store" });
+    if (res.ok) setCategories((await res.json()).categories);
+  }
+
+  function saved(p: Product) {
+    const isNew = editing === "new";
+    setProducts((all) =>
+      (isNew ? [...all, p] : all.map((x) => (x.id === p.id ? p : x))).sort(
+        (a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name),
+      ),
+    );
+    setEditing(null);
+    refreshCategories();
+    notify("success", isNew ? "Product added" : "Saved", p.name);
   }
 
   const counts = useMemo(() => {
@@ -142,36 +134,23 @@ export function CatalogManager({ initial }: { initial: Product[] }) {
     <>
       <div className="page-head">
         <div>
-          <h1>Catalog</h1>
+          <h1>Products</h1>
           <p>{products.length} products. Prices here are your list prices; set special prices per customer under Customers.</p>
         </div>
-        <button className={`btn ${adding ? "" : "btn-primary"}`} onClick={() => setAdding((a) => !a)}>
-          {adding ? <><IconX /> Close</> : <><IconPlus /> Add product</>}
+        <button className="btn btn-primary" onClick={() => setEditing("new")}>
+          <IconPlus /> Add product
         </button>
       </div>
 
-      {adding && (
-        <form className="panel panel-pad stack" style={{ marginBottom: 16 }} onSubmit={add}>
-          <div className="grid-form">
-            <div className="field"><label>SKU</label><input className="input mono" required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="PR-120" /></div>
-            <div className="field" style={{ gridColumn: "span 2" }}><label>Product name</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Baby Spinach" /></div>
-            <div className="field"><label>Category</label>
-              <select className="select" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="field"><label>Sold by</label>
-              <select className="select" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
-                {UNITS.map((u) => <option key={u}>{u}</option>)}
-              </select>
-            </div>
-            <div className="field"><label>Pack size</label><input className="input" value={form.packSize} onChange={(e) => setForm({ ...form, packSize: e.target.value })} placeholder="4 lb" /></div>
-            <div className="field"><label>Price ($ per unit)</label><input className="input input-money" required inputMode="decimal" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" /></div>
-          </div>
-          <div className="row" style={{ justifyContent: "flex-end" }}>
-            <button className="btn btn-primary" disabled={busy}>{busy ? <Spinner /> : "Save product"}</button>
-          </div>
-        </form>
+      {editing && (
+        <ProductForm
+          key={editing === "new" ? "new" : editing.id}
+          initial={editing === "new" ? undefined : editing}
+          categories={categories}
+          defaultKind={defaultKind}
+          onSaved={saved}
+          onClose={() => setEditing(null)}
+        />
       )}
 
       <div className="panel">
@@ -200,15 +179,16 @@ export function CatalogManager({ initial }: { initial: Product[] }) {
               {shown.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    <div style={{ fontWeight: 550 }}>{p.name}</div>
-                    <div className="dim mono" style={{ fontSize: 11.5 }}>{p.sku}{p.packSize ? ` · ${p.packSize}` : ""}</div>
+                    <div style={{ fontWeight: 550, overflowWrap: "anywhere" }}>{p.name}</div>
+                    <div className="dim" style={{ fontSize: 11.5 }}><span className="mono">{p.sku}</span> · per {p.unit}{p.packSize ? ` of ${p.packSize}` : ""}</div>
                   </td>
                   <td className="hide-sm muted">{p.category}</td>
                   <td><PriceCell p={p} onSaved={(c) => update(p.id, { priceCents: c })} /></td>
                   <td>
                     <button className="switch" role="switch" aria-checked={p.inStock} aria-label={`${p.name} in stock`} onClick={() => toggleStock(p)} />
                   </td>
-                  <td className="right">
+                  <td className="right nowrap">
+                    <button className="btn btn-sm" onClick={() => { setEditing(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Edit</button>{" "}
                     <button className="btn btn-ghost btn-sm" onClick={() => archive(p)}>Remove</button>
                   </td>
                 </tr>

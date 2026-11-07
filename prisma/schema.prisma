@@ -36,6 +36,7 @@ model Store {
   products        Product[]
   orders          Order[]
   accountRequests AccountRequest[]
+  categories      Category[]
 }
 
 model User {
@@ -223,4 +224,16 @@ model AccountRequest {
   createdAt    DateTime @default(now())
 
   @@index([storeId, status])
+}
+
+// A store's own product categories (any niche), with an emoji shown to customers.
+model Category {
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name    String
+  emoji   String @default("📦")
+  sort    Int    @default(0)
+
+  @@unique([storeId, name])
 }
