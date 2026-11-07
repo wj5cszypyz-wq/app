@@ -1,10 +1,8 @@
 import bcrypt from "bcryptjs";
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { listMembershipsForUser } from "@/lib/data/stores";
-import { safeNextPath } from "@/lib/next-path";
+import { beginTwoStepLogin } from "@/lib/data/two-step";
 import { clientIp, hit, reset } from "@/lib/rate-limit";
-import { cookieOptions, createSession, SESSION_COOKIE } from "@/lib/session";
+import { completeSignIn } from "@/lib/sign-in";
 
 // Compared against when the email doesn't exist, so a wrong email takes as long as a wrong password
 // (stops attackers from discovering which emails have accounts by timing the response).
@@ -35,13 +33,9 @@ export async function POST(req: Request) {
   if (!user || !ok) return Response.json({ error: "That email and password don't match." }, { status: 401 });
 
   reset(`email:${email}`);
-  const token = await createSession(user.id);
-  const jar = await cookies();
-  jar.set(SESSION_COOKIE, token, cookieOptions());
-
-  const stores = await listMembershipsForUser(user.id);
-  const home =
-    stores.length === 1 ? (stores[0].role === "buyer" ? `/s/${stores[0].slug}` : `/s/${stores[0].slug}/manage`) : "/stores";
-  const next = safeNextPath(body.next, stores.map((s) => s.slug));
-  return Response.json({ redirect: next ?? home });
+  if (user.totpEnabledAt) {
+    // Password was right, but two-step is on: no session until the code is checked.
+    return Response.json({ twoStep: true, ticket: await beginTwoStepLogin(user.id) });
+  }
+  return completeSignIn(user.id, body.next);
 }

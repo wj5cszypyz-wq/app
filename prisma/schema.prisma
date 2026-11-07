@@ -48,6 +48,7 @@ model User {
   // Two-step sign-in: secret encrypted with lib/crypto.ts; recovery codes stored as SHA-256 hashes (JSON array).
   totpSecret      String?
   totpEnabledAt   DateTime?
+  totpLastStep    Int?
   recoveryCodes   String?
   createdAt       DateTime     @default(now())
   sessions        Session[]

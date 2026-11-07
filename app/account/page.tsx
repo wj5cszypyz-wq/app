@@ -6,6 +6,7 @@ import { JsonForm } from "@/components/json-form";
 import { SignOutButton } from "@/components/sign-out";
 import { getSession } from "@/lib/auth";
 import { accountSummary } from "@/lib/data/account";
+import { TwoStep } from "./two-step";
 
 export const metadata: Metadata = { title: "Your account" };
 
@@ -42,9 +43,7 @@ export default async function AccountPage() {
 
         <section className="panel panel-pad stack" id="two-step">
           <h2>Two-step sign-in</h2>
-          <p className="muted" style={{ margin: 0 }}>
-            {me.totpEnabledAt ? "On. You'll enter a code from your authenticator app when you sign in." : "Off."}
-          </p>
+          <TwoStep enabled={Boolean(me.totpEnabledAt)} />
         </section>
 
         <section className="panel panel-pad stack">

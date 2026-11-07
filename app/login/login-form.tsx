@@ -16,6 +16,8 @@ export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [ticket, setTicket] = useState<string | null>(null);
+  const [code, setCode] = useState("");
 
   async function send(url: string, body: object) {
     setBusy(true);
@@ -29,6 +31,11 @@ export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Sign-in failed.");
       setPassword("");
+      if (json.twoStep) {
+        setTicket(json.ticket);
+        setBusy(false);
+        return;
+      }
       router.replace(json.redirect);
       router.refresh();
     } catch (err) {
@@ -40,6 +47,31 @@ export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     send("/api/auth/login", { email, password, next });
+  }
+
+  if (ticket) {
+    return (
+      <form
+        className="stack"
+        style={{ gap: 16 }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          send("/api/auth/login/two-step", { ticket, code, next });
+        }}
+      >
+        <div>
+          <h1>Enter your code</h1>
+          <p className="muted" style={{ margin: "6px 0 0" }}>Open your authenticator app and type the 6-digit code. Lost your phone? Use one of your recovery codes.</p>
+        </div>
+        <div className="field">
+          <label htmlFor="code">Code</label>
+          <input id="code" className="input" inputMode="text" autoComplete="one-time-code" autoFocus required maxLength={20} value={code} onChange={(e) => setCode(e.target.value)} />
+        </div>
+        {error && <div className="error-box" role="alert">{error}</div>}
+        <button className="btn btn-primary btn-lg btn-block" disabled={busy}>{busy ? <Spinner /> : "Verify"}</button>
+        <button type="button" className="btn btn-ghost btn-block" onClick={() => { setTicket(null); setCode(""); setError(null); }}>Start over</button>
+      </form>
+    );
   }
 
   return (
