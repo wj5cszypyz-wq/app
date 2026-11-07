@@ -17,13 +17,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </div>
 
         <div>
-          <div className="produce-row" aria-hidden>🥬🍅🧀🥩🍞</div>
-          <h1 style={{ marginTop: 14 }}>Order your kitchen supplies in minutes.</h1>
-          <p>Produce, dairy, meat and everyday supplies from your wholesaler, with your prices. No phone calls, no texts.</p>
+          <div className="produce-row" aria-hidden>📦🥬💡🧻🛠️</div>
+          <h1 style={{ marginTop: 14 }}>Order from your suppliers in minutes.</h1>
+          <p>Everything your business buys, from the sellers you already know, at your prices. No phone calls, no texts.</p>
           <div className="steps">
             <div><span>1</span>Pick what you need</div>
             <div><span>2</span>Place the order</div>
-            <div><span>3</span>Your supplier gets it instantly, with the invoice ready</div>
+            <div><span>3</span>Your seller gets it instantly, with the invoice ready</div>
           </div>
         </div>
 

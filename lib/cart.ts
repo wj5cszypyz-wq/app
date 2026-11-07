@@ -2,11 +2,11 @@
 // the server re-prices every line when the order is placed.
 export type Cart = Record<string, number>; // productId -> qty
 
-const key = (restaurantId: string) => `larder_cart_${restaurantId}`;
+const key = (cartKey: string) => `larder_cart_${cartKey}`;
 
-export function loadCart(restaurantId: string): Cart {
+export function loadCart(cartKey: string): Cart {
   try {
-    const raw = localStorage.getItem(key(restaurantId));
+    const raw = localStorage.getItem(key(cartKey));
     const parsed = raw ? (JSON.parse(raw) as unknown) : {};
     if (!parsed || typeof parsed !== "object") return {};
     return Object.fromEntries(
@@ -17,9 +17,9 @@ export function loadCart(restaurantId: string): Cart {
   }
 }
 
-export function saveCart(restaurantId: string, cart: Cart) {
+export function saveCart(cartKey: string, cart: Cart) {
   try {
-    localStorage.setItem(key(restaurantId), JSON.stringify(cart));
+    localStorage.setItem(key(cartKey), JSON.stringify(cart));
   } catch {
     // storage blocked: cart still works for this visit
   }

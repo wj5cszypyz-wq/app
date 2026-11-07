@@ -6,13 +6,14 @@ import type { ReactNode } from "react";
 import { APP_NAME } from "@/lib/brand";
 import { IconBox, IconHome, IconLink, IconList, IconMark, IconUsers } from "./icons";
 import { SignOutButton } from "./sign-out";
+import { useStorePaths } from "./use-store";
 
 const NAV = [
-  { href: "/supplier", label: "Today", icon: IconHome, exact: true },
-  { href: "/supplier/orders", label: "All orders", icon: IconList },
-  { href: "/supplier/catalog", label: "Products", icon: IconBox },
-  { href: "/supplier/customers", label: "Customers", icon: IconUsers },
-  { href: "/supplier/settings", label: "QuickBooks", icon: IconLink },
+  { href: "", label: "Today", icon: IconHome, exact: true },
+  { href: "/orders", label: "All orders", icon: IconList },
+  { href: "/catalog", label: "Products", icon: IconBox },
+  { href: "/customers", label: "Customers", icon: IconUsers },
+  { href: "/settings", label: "QuickBooks", icon: IconLink },
 ];
 
 export function SupplierShell(props: {
@@ -23,12 +24,13 @@ export function SupplierShell(props: {
   qboCompany: string | null;
 }) {
   const path = usePathname();
+  const paths = useStorePaths();
   const initials = props.userName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <div className="shell">
       <aside className="sidebar">
-        <Link href="/supplier" className="brand">
+        <Link href={paths.manage()} className="brand">
           <span className="brand-mark"><IconMark /></span>
           <span>
             <div className="brand-name">{APP_NAME}</div>
@@ -36,7 +38,8 @@ export function SupplierShell(props: {
           </span>
         </Link>
 
-        {NAV.map(({ href, label, icon: Icon, exact }) => {
+        {NAV.map(({ href: sub, label, icon: Icon, exact }) => {
+          const href = paths.manage(sub);
           const active = exact ? path === href : path.startsWith(href);
           return (
             <Link key={href} href={href} className="nav-link" aria-current={active ? "page" : undefined} title={label}>
@@ -47,7 +50,7 @@ export function SupplierShell(props: {
         })}
 
         <div className="sidebar-foot">
-          <Link href="/supplier/settings" className="link-status">
+          <Link href={paths.manage("/settings")} className="link-status">
             <span className={`link-dot ${props.qboConnected ? "on" : ""}`} />
             <span className="grow">
               <div style={{ fontWeight: 650 }}>{props.qboConnected ? "QuickBooks connected" : "QuickBooks not connected"}</div>

@@ -36,3 +36,17 @@ describe("static guards", () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe("page guards", () => {
+  const pages = walk(join(root, "app/s/[slug]")).filter((f) => /\/(page|layout)\.tsx$/.test(f));
+
+  it("every page under app/s calls requireStorePage", () => {
+    const missing = pages.filter((f) => f.endsWith("page.tsx") && !readFileSync(f, "utf8").includes("requireStorePage("));
+    expect(missing.map((f) => relative(root, f))).toEqual([]);
+  });
+
+  it("every layout under app/s calls requireStorePage", () => {
+    const missing = pages.filter((f) => f.endsWith("layout.tsx") && !readFileSync(f, "utf8").includes("requireStorePage("));
+    expect(missing.map((f) => relative(root, f))).toEqual([]);
+  });
+});

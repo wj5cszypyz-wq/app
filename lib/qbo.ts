@@ -231,7 +231,7 @@ export async function ensureIncomeAccount(store: Store): Promise<string> {
   return pick.Id;
 }
 
-/** Finds the restaurant in QuickBooks by name, or creates it as a Customer. */
+/** Finds the customer in QuickBooks by name, or creates it as a Customer. */
 export async function ensureCustomer(store: Store, r: Customer): Promise<string> {
   if (r.qboCustomerId) return r.qboCustomerId;
   const displayName = r.name.replace(/:/g, "-").slice(0, 500);

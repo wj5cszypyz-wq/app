@@ -31,7 +31,7 @@ export function lineTotal(qty: number, unitPriceCents: number): number {
   return Math.round(qty * unitPriceCents);
 }
 
-/** Validates the raw JSON a restaurant sends when placing an order. */
+/** Validates the raw JSON a customer sends when placing an order. */
 export function parseOrderInput(body: unknown, today: string): OrderInput | { error: string } {
   if (!body || typeof body !== "object") return { error: "Invalid order." };
   const b = body as Record<string, unknown>;

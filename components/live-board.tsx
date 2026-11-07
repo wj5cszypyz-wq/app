@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatMoney } from "@/lib/money";
-import type { BoardStats, OrderRow } from "@/lib/queries";
+import type { BoardStats, OrderRow } from "@/lib/data/orders";
 import { IconBell } from "./icons";
 import { StatusChip, SyncBadge } from "./status";
 import { useToast } from "./toast";
+import { useStorePaths } from "@/components/use-store";
 
 const POLL_MS = 5000;
 const FILTERS = [
@@ -59,6 +60,7 @@ export function LiveBoard(props: {
   subtitle: string;
 }) {
   const router = useRouter();
+  const paths = useStorePaths();
   const notify = useToast();
   const [filter, setFilter] = useState(props.initialFilter);
   const [orders, setOrders] = useState(props.initialOrders);
@@ -81,7 +83,7 @@ export function LiveBoard(props: {
   const refresh = useCallback(
     async (f: string, announce: boolean) => {
       try {
-        const res = await fetch(`/api/supplier/orders?filter=${f}`, { cache: "no-store" });
+        const res = await fetch(paths.api(`/manage/orders?filter=${f}`), { cache: "no-store" });
         if (res.status === 401) return router.replace("/login");
         if (!res.ok) throw new Error();
         const data = (await res.json()) as { orders: OrderRow[]; stats: BoardStats };
@@ -93,7 +95,7 @@ export function LiveBoard(props: {
           notify(
             "info",
             fresh.length === 1 ? `New order #${first.number}` : `${fresh.length} new orders`,
-            fresh.length === 1 ? `${first.restaurant} · ${formatMoney(first.subtotalCents)}` : undefined,
+            fresh.length === 1 ? `${first.customer} · ${formatMoney(first.subtotalCents)}` : undefined,
           );
           if (soundRef.current) chime();
           setTimeout(() => setArrived(new Set()), 8000);
@@ -188,7 +190,7 @@ export function LiveBoard(props: {
         {orders.length === 0 ? (
           <div className="empty">
             <h3>No orders here</h3>
-            <p>New orders appear here the moment a restaurant places them.</p>
+            <p>New orders appear here the moment a customer places them.</p>
           </div>
         ) : (
           <div className="table-wrap">
@@ -196,7 +198,7 @@ export function LiveBoard(props: {
               <thead>
                 <tr>
                   <th>Order</th>
-                  <th>Restaurant</th>
+                  <th>Customer</th>
                   <th className="hide-sm">Delivery</th>
                   <th>Status</th>
                   <th className="hide-sm">QuickBooks</th>
@@ -208,16 +210,16 @@ export function LiveBoard(props: {
                   <tr
                     key={o.id}
                     className={`clickable ${arrived.has(o.id) ? "row-arrive" : ""}`}
-                    onClick={() => router.push(`/supplier/orders/${o.id}`)}
+                    onClick={() => router.push(paths.manage(`/orders/${o.id}`))}
                   >
                     <td>
-                      <Link href={`/supplier/orders/${o.id}`} className="order-no" onClick={(e) => e.stopPropagation()}>
+                      <Link href={paths.manage(`/orders/${o.id}`)} className="order-no" onClick={(e) => e.stopPropagation()}>
                         <span>#</span>{o.number}
                       </Link>
                       <div className="dim" style={{ fontSize: 11.5 }}>{timeAgo(o.createdAt)}</div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 550 }}>{o.restaurant}</div>
+                      <div style={{ fontWeight: 550 }}>{o.customer}</div>
                       <div className="dim" style={{ fontSize: 11.5 }}>{o.lineCount} {o.lineCount === 1 ? "item" : "items"}</div>
                     </td>
                     <td className="hide-sm muted">{day(o.deliveryDate)}</td>
