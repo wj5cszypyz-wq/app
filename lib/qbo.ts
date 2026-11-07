@@ -282,6 +282,23 @@ export async function listAllCustomers(store: Store): Promise<QboCustomer[]> {
   return queryAll<QboCustomer>(store, "select * from Customer");
 }
 
+export type QboInvoice = {
+  Id: string;
+  DocNumber?: string;
+  TxnDate: string;
+  TotalAmt?: number;
+  Line?: { DetailType?: string; Amount?: number; Description?: string; SalesItemLineDetail?: { ItemRef?: { value?: string; name?: string }; Qty?: number; UnitPrice?: number } }[];
+};
+
+/** A customer's invoices dated on or after `sinceIso` (YYYY-MM-DD). */
+export async function listInvoicesSince(store: Store, customerQboId: string, sinceIso: string): Promise<QboInvoice[]> {
+  return queryAll<QboInvoice>(
+    store,
+    `select * from Invoice where CustomerRef = ${qboQuote(customerQboId)} and TxnDate >= ${qboQuote(sinceIso)}`,
+    5000,
+  );
+}
+
 async function query<T>(store: Store, sql: string): Promise<T[]> {
   const res = await qboRequest(store, "query", { query: { query: sql } });
   const json = (await res.json()) as { QueryResponse?: Record<string, unknown> };
