@@ -48,6 +48,8 @@ model Store {
   accountRequests AccountRequest[]
   categories      Category[]
   uploads         Upload[]
+  importBatches   ImportBatch[]
+  pastInvoices    PastInvoice[]
 }
 
 model User {
@@ -111,7 +113,9 @@ model Customer {
   memberships   Membership[]
   orders        Order[]
   prices        CustomerPrice[]
+  pastInvoices  PastInvoice[]
 
+  @@unique([storeId, qboCustomerId])
   @@index([storeId])
 }
 
@@ -146,6 +150,7 @@ model Product {
   lines         OrderLine[]
 
   @@unique([storeId, sku])
+  @@unique([storeId, qboItemId])
 }
 
 // Per-customer price that overrides the product's list price.
@@ -269,4 +274,39 @@ model Upload {
   createdAt DateTime @default(now())
 
   @@index([storeId])
+}
+
+// One "Bring in from QuickBooks" run, so it can be undone. kind: "items" | "customers" | "invoices".
+// created: JSON array of ids we created; updated: JSON array of { id, before } we changed.
+model ImportBatch {
+  id        String    @id @default(cuid())
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  kind      String
+  created   String    @default("[]")
+  updated   String    @default("[]")
+  undoneAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([storeId, createdAt])
+}
+
+// An invoice brought in from QuickBooks as order history (read-only; never sent back to QuickBooks).
+// lines: JSON [{ name, qty, rate, amountCents, qboItemId }]
+model PastInvoice {
+  id           String   @id @default(cuid())
+  storeId      String
+  store        Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  qboInvoiceId String
+  docNumber    String?
+  txnDate      DateTime
+  totalCents   Int
+  lines        String
+  batchId      String
+  createdAt    DateTime @default(now())
+
+  @@unique([storeId, qboInvoiceId])
+  @@index([customerId, txnDate])
 }

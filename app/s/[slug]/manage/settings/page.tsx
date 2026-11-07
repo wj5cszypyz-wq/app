@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { syncCounts } from "@/lib/data/orders";
+import { recentImports } from "@/lib/data/qbo-import";
 import { getStoreForCtx } from "@/lib/data/stores";
 import { qboConfigured, qboEnvironment } from "@/lib/qbo";
 import { MANAGE, requireStorePage } from "@/lib/scope";
+import { ImportPanel } from "./import-panel";
 import { QboPanel } from "./qbo-panel";
 
 export const metadata: Metadata = { title: "QuickBooks" };
@@ -24,7 +26,7 @@ export default async function SettingsPage({
 }) {
   const ctx = await requireStorePage((await params).slug, MANAGE);
   const { qbo } = await searchParams;
-  const [store, counts] = await Promise.all([getStoreForCtx(ctx), syncCounts(ctx)]);
+  const [store, counts, recent] = await Promise.all([getStoreForCtx(ctx), syncCounts(ctx), recentImports(ctx)]);
 
   return (
     <>
@@ -47,6 +49,7 @@ export default async function SettingsPage({
         waitingCount={counts.waiting}
         redirectUri={process.env.QBO_REDIRECT_URI ?? "http://localhost:3000/api/qbo/callback"}
       />
+      <ImportPanel recent={recent} connected={Boolean(store.qboRealmId) && qboConfigured()} />
     </>
   );
 }

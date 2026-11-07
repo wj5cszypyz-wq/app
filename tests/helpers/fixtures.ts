@@ -25,7 +25,7 @@ export async function makeStore(slug: string) {
   });
 
   const product = await db.product.create({
-    data: { storeId: store.id, sku: `SKU-${slug}`, name: `Product ${slug}`, category: "General", unit: "each", priceCents: 1000 },
+    data: { storeId: store.id, sku: `SKU-${slug}`.toUpperCase(), name: `Product ${slug}`, category: "General", unit: "each", priceCents: 1000 },
   });
 
   const order = (customerId: string, number: number) =>
@@ -47,6 +47,8 @@ export async function makeStore(slug: string) {
     data: { storeId: store.id, businessName: `Req ${slug}`, contactName: "Req", email: `req-${slug}-${n}@test.local` },
   });
 
+  const importBatch = await db.importBatch.create({ data: { storeId: store.id, kind: "items" } });
+
   const tokens = {
     owner: await createSession(owner.id),
     staff: await createSession(staff.id),
@@ -54,7 +56,7 @@ export async function makeStore(slug: string) {
     buyerB: await createSession(buyerB.id),
   };
 
-  return { store, owner, staff, buyerA, buyerB, customerA, customerB, product, orderA, orderB, accountRequest, tokens };
+  return { store, owner, staff, buyerA, buyerB, customerA, customerB, product, orderA, orderB, accountRequest, importBatch, tokens };
 }
 
 export type StoreFixture = Awaited<ReturnType<typeof makeStore>>;
