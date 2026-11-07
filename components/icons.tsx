@@ -70,3 +70,9 @@ export const IconRepeat = (p: P) => (
 export const IconBell = (p: P) => (
   <svg {...base} {...p}><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2.2 2.2 0 0 0 4 0" /></svg>
 );
+export const IconStore = (p: P) => (
+  <svg {...base} {...p}><path d="M4 9.5 5.5 4h13L20 9.5" /><path d="M4 9.5c0 1.4 1.1 2.5 2.7 2.5s2.6-1.1 2.6-2.5c0 1.4 1.1 2.5 2.7 2.5s2.7-1.1 2.7-2.5c0 1.4 1 2.5 2.6 2.5S20 10.9 20 9.5" /><path d="M5.5 12v8h13v-8" /><path d="M10 20v-4.5h4V20" /></svg>
+);
+export const IconBadge = (p: P) => (
+  <svg {...base} {...p}><rect x="4" y="3.5" width="16" height="17" rx="2.5" /><circle cx="12" cy="10" r="2.8" /><path d="M7.5 17c.8-1.9 2.5-3 4.5-3s3.7 1.1 4.5 3" /></svg>
+);

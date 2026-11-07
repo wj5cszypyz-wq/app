@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { APP_NAME } from "@/lib/brand";
-import { IconBox, IconHome, IconLink, IconList, IconUsers } from "./icons";
+import { IconBadge, IconBox, IconHome, IconLink, IconList, IconStore, IconUsers } from "./icons";
 import { StoreMark } from "./store-look";
 import { SignOutButton } from "./sign-out";
 import { useStorePaths } from "./use-store";
@@ -14,7 +14,8 @@ const NAV = [
   { href: "/orders", label: "All orders", icon: IconList },
   { href: "/catalog", label: "Products", icon: IconBox },
   { href: "/customers", label: "Customers", icon: IconUsers },
-  { href: "/team", label: "Team", icon: IconUsers },
+  { href: "/team", label: "Team", icon: IconBadge },
+  { href: "/setup", label: "Store setup", icon: IconStore },
   { href: "/settings", label: "QuickBooks", icon: IconLink },
 ];
 

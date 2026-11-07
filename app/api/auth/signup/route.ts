@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   if (fresh) {
     const jar = await cookies();
     jar.set(SESSION_COOKIE, await createSession(fresh.userId), cookieOptions());
-    return Response.json({ redirect: `/s/${fresh.slug}/manage` });
+    return Response.json({ redirect: `/s/${fresh.slug}/manage/setup` });
   }
   return Response.json({ message: "Check your email to continue. If you already have an account, we've sent you a sign-in link instead." });
 }
