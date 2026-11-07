@@ -8,5 +8,5 @@ out
 next-env.d.ts
 *.tsbuildinfo
 .DS_Store
-uploads
-prisma/test-uploads
+/uploads
+/prisma/test-uploads
