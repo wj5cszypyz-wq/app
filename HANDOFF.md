@@ -111,10 +111,20 @@ Read this first in any new session. Last updated 2026-11-06.
   since (so nothing is silently overwritten). "Remove product" is reversible; removed products can be
   restored from the Products page. Store-settings undo is owner-only.
 
+### Phase 7 (final review): done
+- An independent reviewer read the whole branch. It found no cross-store data access. It found 1 critical
+  issue (sign-up could sign in as a brand-new account) and several important ones (two-step guessing,
+  QuickBooks company switch / cancel edge cases, import undo overwriting edits, upload size cap, invites).
+  All are fixed, each with a test (`tests/integration/review-fixes.test.ts`).
+- Sign-up no longer signs you in on the spot: the emailed link (or signing in with your password) does.
+- Verified in a fresh clone from GitHub: 309 tests, type check, production build, `npm audit` = 0,
+  162 real-browser checks (store isolation, every page on phone and desktop, sign-up, undo).
+
 ## Next steps (in order)
-1. Phase 7 of the roadmap (independent security review, final click-through, preview link).
+1. Owner review of the preview; merge `claude/loving-fermi-42tguu` into `main` when happy.
 2. QuickBooks sandbox test (needs the owner's Intuit developer keys): connect, bring in items/customers,
-   place an order, cancel it (void), reopen it.
-3. Before real customers: Postgres, hosting with HTTPS, Privacy Policy +
+   place an order, cancel it (void), reopen it. Everything so far is tested only against a fake QuickBooks.
+3. Optional: `ANTHROPIC_API_KEY` for smart product entry; Resend key for real emails.
+4. Before real customers: Postgres, hosting with HTTPS, Privacy Policy +
    Terms (Intuit requires them), Intuit production approval, `DEMO_MODE="false"`.
-4. Then: Stripe Connect payments, standing orders, order cutoff times, email/SMS order alerts.
+5. Then: Stripe Connect payments, standing orders, order cutoff times, email/SMS order alerts.
