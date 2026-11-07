@@ -1,3 +1,5 @@
+import { allowsDecimal } from "./units";
+
 export const CATEGORIES = [
   "Produce",
   "Dairy & Eggs",
@@ -54,6 +56,6 @@ export function nextStatus(s: string): OrderStatus | null {
 /** Weighed items (lb) can be ordered in hundredths; everything else in whole units. */
 export function isValidQty(unit: string, qty: number): boolean {
   if (!Number.isFinite(qty) || qty <= 0 || qty > 10_000) return false;
-  if (unit === "lb") return Math.abs(qty * 100 - Math.round(qty * 100)) < 1e-9;
+  if (allowsDecimal(unit)) return Math.abs(qty * 100 - Math.round(qty * 100)) < 1e-9;
   return Number.isInteger(qty);
 }

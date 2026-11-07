@@ -10,17 +10,17 @@ datasource db {
 // A seller's store. Each store is fully separate and connects its own QuickBooks company.
 // status: "active" | "suspended"
 model Store {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  niche     String?
-  status    String   @default("active")
+  id                   String   @id @default(cuid())
+  slug                 String   @unique
+  name                 String
+  niche                String?
+  status               String   @default("active")
   // Optional public page (/join/<slug>) where new customers can ask for an account. Off by default.
-  allowAccountRequests Boolean @default(false)
-  phone     String?
-  email     String?
-  address   String?
-  createdAt DateTime @default(now())
+  allowAccountRequests Boolean  @default(false)
+  phone                String?
+  email                String?
+  address              String?
+  createdAt            DateTime @default(now())
 
   // QuickBooks Online connection (tokens are stored encrypted)
   qboRealmId          String?
@@ -103,36 +103,44 @@ model Customer {
   @@index([storeId])
 }
 
-// unit: "case" | "lb" | "each" | "dozen" | "gal"
+// unit: the unit it's sold by (lib/units.ts); unitKind: weight|liquid|paper|length|count|packed.
+// packSize is display text generated from packCount/packAmount/packUnit (kept so old orders still read well).
 model Product {
-  id         String          @id @default(cuid())
-  storeId    String
-  store      Store           @relation(fields: [storeId], references: [id])
-  sku        String
-  name       String
-  category   String
-  unit       String
-  packSize   String?
-  priceCents Int
-  inStock    Boolean         @default(true)
-  active     Boolean         @default(true)
-  qboItemId  String?
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  prices     CustomerPrice[]
-  lines      OrderLine[]
+  id          String          @id @default(cuid())
+  storeId     String
+  store       Store           @relation(fields: [storeId], references: [id])
+  sku         String
+  name        String
+  category    String
+  unit        String
+  unitKind    String          @default("count")
+  packCount   Int?
+  packAmount  Float?
+  packUnit    String?
+  byWeight    Boolean         @default(false)
+  description String?
+  imageIds    String?
+  packSize    String?
+  priceCents  Int
+  inStock     Boolean         @default(true)
+  active      Boolean         @default(true)
+  qboItemId   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  prices      CustomerPrice[]
+  lines       OrderLine[]
 
   @@unique([storeId, sku])
 }
 
 // Per-customer price that overrides the product's list price.
 model CustomerPrice {
-  id           String     @id @default(cuid())
-  customerId   String
-  customer     Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  productId    String
-  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
-  priceCents   Int
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceCents Int
 
   @@unique([customerId, productId])
 }
@@ -140,18 +148,18 @@ model CustomerPrice {
 // status: "new" | "packing" | "ready" | "delivered" | "cancelled"
 // qboSyncStatus: "pending" | "synced" | "failed" | "not_connected"
 model Order {
-  id            String      @id @default(cuid())
+  id            String    @id @default(cuid())
   storeId       String
-  store         Store       @relation(fields: [storeId], references: [id])
+  store         Store     @relation(fields: [storeId], references: [id])
   customerId    String
-  customer      Customer    @relation(fields: [customerId], references: [id])
+  customer      Customer  @relation(fields: [customerId], references: [id])
   number        Int
-  status        String      @default("new")
+  status        String    @default("new")
   deliveryDate  DateTime?
   notes         String?
   subtotalCents Int
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   qboSyncStatus String    @default("pending")
   qboInvoiceId  String?
