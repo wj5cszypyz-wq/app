@@ -37,7 +37,7 @@ describe("linking and units", () => {
     });
     const order = await newOrder(p.id, 2, 12000);
     expect(await syncOrderToQuickBooks(order.id)).toMatchObject({ qboSyncStatus: "synced" });
-    const inv = fake.invoices.at(-1) as { Line: { Amount: number; Description: string; SalesItemLineDetail: { Qty: number; UnitPrice: number } }[] };
+    const inv = fake.invoices.at(-1) as unknown as { Line: { Amount: number; Description: string; SalesItemLineDetail: { Qty: number; UnitPrice: number } }[] };
     expect(inv.Line[0].SalesItemLineDetail).toMatchObject({ Qty: 80, UnitPrice: 3 });
     expect(inv.Line[0].Amount).toBe(240);
     expect(inv.Line[0].Description).toContain("2 case (80 lb)");
