@@ -66,9 +66,20 @@ Read this first in any new session. Last updated 2026-11-06.
 - Known gaps handled in later phases: categories/units are still the food list when **adding** products
   (phase 3), customers get temporary passwords instead of email invites (phase 2), no sign-up yet (phase 2).
 
+### Phase 2 (accounts): done
+- Sign-up at `/signup` (store starts "unverified": sellers can set up, customers can't order until the owner
+  clicks the emailed confirmation link). Forgot/reset password, change password, sign out other devices (`/account`).
+- Customers and staff get **emailed invites** (no more temporary passwords). Team page; owner can remove staff.
+- Optional public "request an account" page `/join/<store>` (off by default; owner switch on the Customers page).
+- Optional two-step sign-in (authenticator app + 10 one-time recovery codes).
+- Platform admin page `/admin` (suspend/reopen stores; no access to their orders/customers). Make yourself admin
+  with `npm run make-admin -- you@example.com` after signing up.
+- Email: printed in the `npm run dev` terminal locally (click the links there). Production needs a Resend
+  account: set `RESEND_API_KEY`, `EMAIL_FROM` and `APP_URL` in `.env`.
+
 ## Next steps (in order)
-1. Phase 2 of the roadmap (accounts: sign-up, email verification, password reset, invites, two-step sign-in).
+1. Phase 3 of the roadmap (setup questions, looks, photos, units).
 2. QuickBooks sandbox test (needs the owner's Intuit developer keys), best after phase 4.
-3. Before real customers: password reset + change password, Postgres, hosting with HTTPS, Privacy Policy +
+3. Before real customers: Postgres, hosting with HTTPS, Privacy Policy +
    Terms (Intuit requires them), Intuit production approval, `DEMO_MODE="false"`.
 4. Then: Stripe Connect payments, standing orders, order cutoff times, email/SMS order alerts.

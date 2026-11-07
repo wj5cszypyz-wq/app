@@ -86,6 +86,46 @@ await p.goto(`${BASE}/s/brightline/manage`, { waitUntil: "networkidle" });
 ok(new URL(p.url()).pathname === "/login", "signed out: store page redirects to sign-in");
 const api = await p.request.get(`${BASE}/api/s/brightline/manage/orders`);
 ok(api.status() === 401, `signed out: API says 401 (${api.status()})`);
+// Public account pages render, fit a phone screen, and reveal nothing they shouldn't.
+for (const width of [390, 1280]) {
+  const ctx = await browser.newContext({ viewport: { width, height: 860 } });
+  const pg = await ctx.newPage();
+  for (const [path, status] of [["/login", 200], ["/signup", 200], ["/forgot", 200], ["/reset?token=nope", 200], ["/invite?token=nope", 200], ["/join/brightline", 404], ["/join/no-such-store", 404]]) {
+    const res = await pg.goto(BASE + path, { waitUntil: "networkidle" });
+    ok(res?.status() === status, `public @${width}: ${path} → ${status} (${res?.status()})`);
+    const overflow = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    ok(overflow <= 0, `public @${width}: ${path} fits the screen (overflow ${overflow}px)`);
+  }
+  await ctx.close();
+}
+
+// Sign up a brand-new seller: lands in their own store with the "confirm your email" notice,
+// and can't see the demo stores.
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 860 } });
+  const pg = await ctx.newPage();
+  const slug = `e2e-${Date.now().toString(36)}`;
+  await pg.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
+  await pg.fill("#f-name", "Test Seller");
+  await pg.fill("#f-email", `${slug}@example.test`);
+  await pg.fill("#f-password", "a-long-test-password");
+  await pg.fill("#f-storeName", "E2E Candles");
+  await pg.fill("#f-slug", slug);
+  await pg.click("button[type=submit], form button.btn-primary");
+  await pg.waitForURL(`**/s/${slug}/manage`, { timeout: 15000 }).catch(() => {});
+  ok(new URL(pg.url()).pathname === `/s/${slug}/manage`, `sign-up lands on the new store (${pg.url()})`);
+  ok((await pg.getByText("isn't open to customers yet").count()) > 0, "sign-up: confirm-email notice shows");
+  const overflow = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  ok(overflow <= 0, `sign-up: new store fits the phone screen (overflow ${overflow}px)`);
+  const other = await pg.goto(`${BASE}/s/brightline/manage`, { waitUntil: "networkidle" });
+  ok(other?.status() === 404, "new seller can't open another store");
+  const admin = await pg.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
+  ok(admin?.status() === 404, "non-admin gets 404 on /admin");
+  const acct = await pg.goto(`${BASE}/account`, { waitUntil: "networkidle" });
+  ok(acct?.status() === 200, "account page loads");
+  await ctx.close();
+}
+
 await browser.close();
 
 console.log(failures ? `\n${failures} check(s) FAILED` : "\nAll checks passed");

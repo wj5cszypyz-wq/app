@@ -9,6 +9,13 @@ packing slip. Build plan: `docs/superpowers/plans/2026-11-07-roadmap.md`.
 
 ## What's built
 
+**Accounts**
+- Sellers open a store at `/signup`; the store opens to customers once the owner confirms their email
+- Customers and staff join by emailed invite; optional public "request an account" page at `/join/<store>`
+- Forgot/reset password, change password, sign out other devices, optional two-step sign-in (`/account`)
+- Platform admin at `/admin` (`npm run make-admin -- you@example.com`)
+- Emails print in the dev terminal locally; production uses Resend (`RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`)
+
 **Seller (store owner or staff)** at `/s/<store>/manage`
 - **Command**: live order board (updates every 5 s, new-order alert + optional sound), today's sales, open orders, QuickBooks issues
 - **Orders**: full history, fulfillment pipeline (New → Packing → Ready → Delivered), cancel/reopen
