@@ -87,9 +87,21 @@ Read this first in any new session. Last updated 2026-11-06.
   (never committed, never public) and only shown to members of that store.
 - Fixed: signed-in pages at the new `/s/...` addresses are now marked "never cache".
 
+### Phase 4 (QuickBooks): done, tested against a fake QuickBooks (not yet against Intuit)
+- "Bring in from QuickBooks" on the QuickBooks page: items, customers, and (optional) past invoices since a date.
+  Preview first, tick what to bring in, undo any run. Re-running updates instead of duplicating; same SKU or
+  same customer name links instead of creating a copy.
+- Invoices: never duplicated (one send per order at a time + QuickBooks request ids); token refresh can't race;
+  inactive QuickBooks items/customers and vendor/employee name clashes give a clear message instead of a copy.
+- Unit conversion per product ("1 case = 40 lb" in QuickBooks); falls back to the sold unit if the money
+  wouldn't add up to the cent.
+- Cancelling an invoiced order voids the invoice in QuickBooks; reopening makes a fresh one (`ORD-1004-2`).
+- All of this runs against `tests/helpers/fake-qbo.ts`. The owner's sandbox test is still the real proof.
+
 ## Next steps (in order)
-1. Phase 4 of the roadmap (QuickBooks import, linking, unit conversion, duplicate protection).
-2. QuickBooks sandbox test (needs the owner's Intuit developer keys), best after phase 4.
+1. Phase 5 of the roadmap (smart product entry).
+2. QuickBooks sandbox test (needs the owner's Intuit developer keys): connect, bring in items/customers,
+   place an order, cancel it (void), reopen it.
 3. Before real customers: Postgres, hosting with HTTPS, Privacy Policy +
    Terms (Intuit requires them), Intuit production approval, `DEMO_MODE="false"`.
 4. Then: Stripe Connect payments, standing orders, order cutoff times, email/SMS order alerts.
