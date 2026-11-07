@@ -114,7 +114,7 @@ for (const width of [390, 1280]) {
   await pg.click("button[type=submit], form button.btn-primary");
   await pg.getByText("Check your email").waitFor({ timeout: 15000 }).catch(() => {});
   ok((await pg.getByText("Check your email").count()) > 0, "sign-up asks to check email (no automatic sign-in)");
-  ok(!(await ctx.cookies()).some((c) => c.name.includes("orderdock_sid")), "sign-up alone doesn't sign anyone in");
+  ok(!(await ctx.cookies()).some((c) => c.name.includes("reorderpal_sid")), "sign-up alone doesn't sign anyone in");
   // The new owner can sign in with their password and set up while the store is unconfirmed.
   await pg.goto(`${BASE}/login`, { waitUntil: "networkidle" });
   await pg.fill("#email", `${slug}@example.test`);

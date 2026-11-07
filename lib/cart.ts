@@ -2,7 +2,7 @@
 // the server re-prices every line when the order is placed.
 export type Cart = Record<string, number>; // productId -> qty
 
-const key = (cartKey: string) => `orderdock_cart_${cartKey}`;
+const key = (cartKey: string) => `reorderpal_cart_${cartKey}`;
 
 export function loadCart(cartKey: string): Cart {
   try {

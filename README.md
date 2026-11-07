@@ -1,4 +1,4 @@
-# OrderDock
+# ReorderPal
 
 Ordering stores for any seller (produce wholesalers, lamp makers, any niche). Each seller gets their own
 separate store at `/s/<store-name>`; their customers order from their phone, each order becomes a

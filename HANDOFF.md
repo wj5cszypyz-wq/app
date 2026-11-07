@@ -1,131 +1,116 @@
-# OrderDock — project hand-off
+# ReorderPal: project hand-off
 
-Read this first in any new session. Last updated 2026-11-06.
+The full picture for anyone (or any new session) picking this up. Last updated 2026-11-07.
+Short rules are in `CLAUDE.md`; this file has the details.
 
-## The business
-- **Who:** the owner is building a local competitor to **BlueCart** (bluecart.com) and **Choco** (choco.com/us).
-- **What:** wholesale ordering for food suppliers (produce, dairy, meat, bakery, dry goods, paper goods).
-  Restaurants order in the app → order becomes a **QuickBooks Online invoice automatically** → the supplier
+## 1. The business
+- **What:** a store builder for any seller. Each seller (produce wholesaler, lamp maker, paper supplier,
+  anything) gets **their own separate store**. Their business customers order from their phone whenever
+  they want instead of calling. **Every order becomes a QuickBooks Online invoice automatically**; the seller
   sees it live and prints the invoice and packing slip.
-- **Customers who pay:** suppliers (wholesalers). Restaurants use it free; they follow their supplier.
-- **Edge vs. BlueCart** (from public reviews): public simple pricing, rock-solid invoice printing, clear
-  QuickBooks sync status with retry, in-person local setup, a written promise to never market to a supplier's
-  customers, QuickBooks Desktop support later.
-- **Later revenue ideas:** card/ACH payment fee via Stripe Connect, restaurant "Pro" plan (invoices into the
-  restaurant's own QuickBooks as Bills, price tracking), marketplace, rush-order fees. Avoid per-order fees.
-- **Name: OrderDock** (chosen by the owner on 2026-11-07; was "Larder"). Set in `lib/brand.ts`. Internal
-  names were renamed too (cookie `orderdock_sid`, browser keys `orderdock_*`).
+- **Who pays:** sellers (monthly subscription, not built yet). Their customers use it free.
+- **Started as** a local competitor to BlueCart and Choco for food suppliers; widened on 2026-11-07 to any
+  niche. Edge over BlueCart (from their public reviews): simple public pricing, invoices that print right,
+  clear QuickBooks status with Retry, in-person local setup, a written promise never to market to a seller's
+  customers, QuickBooks Desktop later.
+- **How it reaches sellers:** the owner visits suppliers in person; sellers sign up and fill in their own store.
+- **Later revenue ideas:** card/ACH fee via Stripe Connect, a buyer "Pro" plan (invoices into the buyer's own
+  QuickBooks as Bills, price tracking), marketplace, rush-order fees. No per-order fees for buyers.
 
-## How the owner wants to work
-- No fluff, no made-up facts. Plain language, step by step.
-- **Design must be simple, light and "fresh market":** warm off-white, white cards, leaf green (#2e7d4a),
-  category emojis, plain words. **Not futuristic/dark.** It was redesigned once for this reason.
-- Security matters a lot: no secrets in the browser, server-side sessions, nothing sensitive in localStorage.
+## 2. Name and domain
+- **ReorderPal**, domain **reorderpal.com** (owner bought it 2026-11-07; registrar not recorded here).
+- Name history: "Larder" (placeholder) → "OrderDock" (dropped: orderdock.com taken since 2004 and an
+  "OrderDock" restaurant-ordering app already exists) → **ReorderPal** (.com was free, no same-name app found).
+- Set in `lib/brand.ts`; internal names match (`reorderpal_sid` cookie, `reorderpal_*` browser keys).
+- Owner should still do a quick check at tmsearch.uspto.gov (a web search isn't a legal trademark check).
 
-## Current state (done and verified)
-- Next.js 15 + TypeScript + Prisma (SQLite locally; Postgres for production). Code is at the repo root.
-- Supplier: Today board (live every 5 s), All orders, order detail with New→Packing→Ready→Delivered,
-  printable invoice + packing slip, Products (inline price, stock switch), Customers (logins, per-customer
-  prices), QuickBooks settings.
-- Restaurant: storefront with their prices, categories, search, cart, delivery date, note, history, reorder.
-- QuickBooks code: OAuth connect, Customer/Item/Invoice creation, `requestid` so retries never duplicate,
-  PDF download, encrypted tokens. **Not yet tested against Intuit** — needs the owner's developer keys.
-- Security (tested live): HttpOnly random session token, only its SHA-256 stored, server-side logout,
-  login rate limit, CSRF Origin check, CSP + security headers, no secrets in browser build, `npm audit` = 0.
-- Checks: 25 unit tests pass, `tsc` clean, `next build` passes.
+## 3. How the owner works
+See `CLAUDE.md`. In short: plain words, step by step, no made-up facts, finish the job, show it running,
+light simple design, security first, ask before spending money.
 
-## This Mac
-- No Xcode Command Line Tools → **no git, no python3**. Apple's install pop-up has appeared; the owner can
-  click Install or run `xcode-select --install`.
-- Node 22 was installed to `~/.local/node` (official, checksum verified). Use:
-  `export PATH="$HOME/.local/node/bin:$PATH"`
-- Run: `npm run dev` → http://localhost:3000 (one-click demo buttons; `DEMO_MODE="true"` in `.env`).
-- `.env` holds a generated `SESSION_SECRET`. **Never upload `.env` or `dev.db`.**
+## 4. What's built (branch `claude/loving-fermi-42tguu`; `main` still has the old single-supplier app)
+Next.js 15 (App Router) + TypeScript + Prisma (SQLite locally; Postgres planned for production).
 
-## GitHub
-- Repo: https://github.com/wj5cszypyz-wq/app. Code is on `main`, at the repo root (done 2026-11-06).
-- `.gitignore` keeps out `node_modules`, `.next`, `.env`, `.env.local`, `*.db` and build files.
-- `.env.example` lists every setting. To start fresh: `cp .env.example .env`, put a long random value in
-  `SESSION_SECRET` (`openssl rand -base64 48`), then `npm install` and `npm run setup`.
-- Verified on 2026-11-06 in a fresh clone: `npm install` (0 vulnerabilities), 25/25 tests, `tsc` clean,
-  `next build` passes, and every supplier and restaurant page loads with no errors.
-- Demo buttons only appear with `npm run dev`. `npm start` (production) hides them on purpose.
+- **Separate stores:** customers at `/s/<store>`, sellers at `/s/<store>/manage`. `lib/scope.ts` checks the
+  signed-in person's membership on every request; anything else is "not found". All store data goes through
+  `lib/data/*`, always filtered by store (and by customer for buyers).
+- **Accounts:** seller sign-up `/signup` (store opens to customers once the owner confirms their email;
+  the emailed link signs them in), password reset, change password, sign out other devices, optional
+  two-step sign-in with recovery codes (`/account`). Customers and staff join by **emailed invite**.
+  Optional public "request an account" page `/join/<store>` (off by default). Team page (owner adds/removes
+  staff). Platform admin `/admin` (suspend/reopen stores; can't see their orders or customers):
+  `npm run make-admin -- you@example.com`.
+- **Store setup** page (sign-up lands there; doubles as settings): what you sell, contact, delivery/pickup,
+  4 looks (Fresh market, Clean, Warm craft, Classic), button color (auto-darkened if unreadable), logo,
+  banner, which kinds of items you sell.
+- **Products for any niche:** unit kinds (weight, liquid, paper, length, single items, packed goods) with
+  matching units, pack contents ("$42.00 per case of 24 × 12 fl oz"), billed-by-weight, description, up to
+  4 photos, each store's own categories with an emoji. Photos are checked by content, re-encoded to WebP,
+  stored in `uploads/` (never public, never committed) and shown only to that store's members.
+- **Smart product entry** (`lib/suggest.ts`): typing a new product's name fills in category, unit and pack
+  size. Off until `ANTHROPIC_API_KEY` is set. Uses Claude Opus 5.5 at low effort; cost not measured yet
+  (estimated under 1 cent per product); Claude Haiku 5.5 would be ~1/40 the cost, owner's call.
+- **Ordering:** storefront with the customer's own prices, search, "Order again", cart, delivery/pickup date,
+  note, confirmation, history, one-tap reorder. Seller: live Today board, all orders, New → Packing →
+  Ready → Delivered, cancel/reopen, printable invoice + packing slip.
+- **QuickBooks** (`lib/qbo.ts`, `lib/sync.ts`, `lib/data/qbo-import.ts`): connect per store; every order →
+  invoice; never duplicates (one send at a time + request ids); token refresh can't race; links existing
+  QuickBooks items/customers instead of copying; clear messages for inactive items and name clashes; unit
+  conversion ("1 case = 40 lb"); cancelling voids the invoice, reopening makes a fresh one; orders remember
+  which QuickBooks company they belong to. "Bring in from QuickBooks": items, customers, optional past
+  invoices, with preview and undo. **Tested only against `tests/helpers/fake-qbo.ts`, not real Intuit yet.**
+- **Undo/redo + History** for product, special-price and store-settings changes; removed products can be
+  restored.
+- **Security review:** an independent reviewer checked the whole branch; 11 findings (1 critical) all fixed
+  with tests (`tests/integration/review-fixes.test.ts`). No cross-store access found.
+- **Verified** (fresh clone): 309 tests, type check, production build, `npm audit` = 0, 162 real-browser checks.
 
-## Direction change (2026-11-07): store builder for any seller
-- The owner wants Larder to become a store template **any seller** can fill in (produce, lamps, any niche),
-  each with **its own separate store**, with QuickBooks invoicing as the main selling point.
-- Approved design: `docs/superpowers/specs/2026-11-07-multi-niche-stores-design.md`.
-- Build roadmap (7 phases, each ends tested and pushed): `docs/superpowers/plans/2026-11-07-roadmap.md`.
-- Work happens on branch `claude/loving-fermi-42tguu`; `main` still has the original single-supplier app.
+## 5. Run it
+```
+cp .env.example .env            # then put a long random value in SESSION_SECRET (openssl rand -base64 48)
+npm install
+npm run setup                   # creates the local database with two demo stores
+npm run dev                     # http://localhost:3000
+```
+Demo buttons on the sign-in page: Harbor Fresh (produce) and Brightline Lamps, as seller or customer.
+Emails print in the `npm run dev` terminal locally (click the links there).
 
-### Phase 1 (multi-store foundation): done
-- `Store` / `Membership` / `Customer` models; stores at `/s/<slug>` (customers) and `/s/<slug>/manage` (sellers).
-- `lib/scope.ts` checks membership on every request; `lib/data/*` is the only place store data is read/written.
-- Tests: 120 unit/integration tests incl. a break-in matrix over every store action, guard tests that fail if a
-  page or action skips the check, and a real-browser script (`tests/e2e/isolation.e2e.mjs`, 96+ checks).
-- Two demo stores: Harbor Fresh (produce) and Brightline Lamps. Demo buttons on the sign-in page.
-- Known gaps handled in later phases: categories/units are still the food list when **adding** products
-  (phase 3), customers get temporary passwords instead of email invites (phase 2), no sign-up yet (phase 2).
+**Owner's Mac:** no Xcode Command Line Tools at last check (no git/python3) → `xcode-select --install`.
+Node 22 is in `~/.local/node`: `export PATH="$HOME/.local/node/bin:$PATH"`.
 
-### Phase 2 (accounts): done
-- Sign-up at `/signup` (store starts "unverified": sellers can set up, customers can't order until the owner
-  clicks the emailed confirmation link). Forgot/reset password, change password, sign out other devices (`/account`).
-- Customers and staff get **emailed invites** (no more temporary passwords). Team page; owner can remove staff.
-- Optional public "request an account" page `/join/<store>` (off by default; owner switch on the Customers page).
-- Optional two-step sign-in (authenticator app + 10 one-time recovery codes).
-- Platform admin page `/admin` (suspend/reopen stores; no access to their orders/customers). Make yourself admin
-  with `npm run make-admin -- you@example.com` after signing up.
-- Email: printed in the `npm run dev` terminal locally (click the links there). Production needs a Resend
-  account: set `RESEND_API_KEY`, `EMAIL_FROM` and `APP_URL` in `.env`.
+**Cloud sessions:** the preview runs on port 3000 for at most 2 hours per start; the owner sees it through the
+Claude app's preview pane or screenshots, not by typing localhost. `rdap.verisign.com` is allowed in this
+environment for .com availability checks.
 
-### Phase 3 (setup, looks, photos, units): done
-- "Store setup" page (sign-up lands there): what you sell, contact, delivery/pickup, look (Fresh market, Clean,
-  Warm craft, Classic), button color (auto-darkened if hard to read), logo, banner, which kinds of items you sell.
-- Products: any kind of item with the right units (weight, liquid, paper, length, single items, packed goods),
-  pack contents ("case of 24 × 12 fl oz"), "billed by actual weight", description, up to 4 photos, per-store
-  categories with an emoji. Customers see "$42.00 per case of 24 × 12 fl oz".
-- Photos are checked by their real content, re-encoded to WebP (hidden data stripped), stored in `uploads/`
-  (never committed, never public) and only shown to members of that store.
-- Fixed: signed-in pages at the new `/s/...` addresses are now marked "never cache".
+## 6. Getting into QuickBooks (the plan the owner agreed to)
+A. **Sandbox test on the owner's Mac** (needs their Intuit developer account): create an app at
+   developer.intuit.com (QuickBooks Online, Accounting scope) → redirect URI
+   `http://localhost:3000/api/qbo/callback` → dev keys into `.env` → connect the sandbox company → place an
+   order → invoice appears → try Bring in from QuickBooks, cancel (void), reopen. Can't be done from a cloud
+   session (Intuit redirects to the owner's own localhost).
+B. **Put it online:** Vercel hosting + Postgres (e.g. Neon) + online photo storage + reorderpal.com pointed at
+   it + Privacy Policy, Terms of Use (EULA) and a disconnect page.
+C. **Production keys:** developer portal → Production Settings (app details + URLs on reorderpal.com) →
+   App Assessment Questionnaire (required for every app using real data) → approval → production keys →
+   `QBO_ENV="production"`.
+D. **QuickBooks App Store listing:** three-part review (technical, security, marketing), listing page (name,
+   icon, screenshots, description, pricing), annual re-review. Third parties report 6 weeks to several months.
+   Intuit App Partner Program: free Builder tier; Core API calls free; "CorePlus" calls capped on Builder,
+   billed on paid tiers (check which of our calls are CorePlus before launch).
 
-### Phase 4 (QuickBooks): done, tested against a fake QuickBooks (not yet against Intuit)
-- "Bring in from QuickBooks" on the QuickBooks page: items, customers, and (optional) past invoices since a date.
-  Preview first, tick what to bring in, undo any run. Re-running updates instead of duplicating; same SKU or
-  same customer name links instead of creating a copy.
-- Invoices: never duplicated (one send per order at a time + QuickBooks request ids); token refresh can't race;
-  inactive QuickBooks items/customers and vendor/employee name clashes give a clear message instead of a copy.
-- Unit conversion per product ("1 case = 40 lb" in QuickBooks); falls back to the sold unit if the money
-  wouldn't add up to the cent.
-- Cancelling an invoiced order voids the invoice in QuickBooks; reopening makes a fresh one (`ORD-1004-2`).
-- All of this runs against `tests/helpers/fake-qbo.ts`. The owner's sandbox test is still the real proof.
+## 7. Next steps (in order)
+1. **Put the app online on reorderpal.com** (step B): switch to Postgres, online photo storage, Vercel
+   deploy, connect the domain, add Privacy Policy / Terms / disconnect pages. Owner signs up for Vercel and
+   Neon (free tiers); the assistant does the code.
+2. **QuickBooks sandbox test** (step A) with the owner, click by click.
+3. **Real email** (Resend; send from orders@reorderpal.com) and optional `ANTHROPIC_API_KEY`.
+4. **Before real sellers:** Intuit production keys (step C), `DEMO_MODE="false"`, new `SESSION_SECRET`,
+   seller billing (monthly subscription, e.g. Stripe), merge the branch into `main`.
+5. **Then:** QuickBooks App Store listing (step D), card/ACH payments, standing orders, order cutoff times,
+   email/SMS order alerts, CSV product import, QuickBooks Desktop, phone app stores.
 
-### Phase 5 (smart product entry): done (needs an Anthropic API key to switch on)
-- Typing a new product's name fills in category + emoji, kind of item, unit, pack contents and "billed by
-  weight" (only fields the seller hasn't touched; they can change everything). Server-side only, rate-limited
-  per store and person. Uses Claude Opus 5.5 at low effort; set `ANTHROPIC_API_KEY` in `.env` to turn it on.
-  Cost is not measured yet (no key here); estimated well under 1 cent per product from list prices.
-  A cheaper model (Claude Haiku 5.5) is a one-line change in `lib/suggest.ts` if the owner wants it.
-
-### Phase 6 (undo, redo, history): done
-- Every product change, special-price change and store-settings change shows a toast with **Undo** (then
-  **Redo**). The **History** page lists everything with Undo/Redo. Undo refuses if the item was changed again
-  since (so nothing is silently overwritten). "Remove product" is reversible; removed products can be
-  restored from the Products page. Store-settings undo is owner-only.
-
-### Phase 7 (final review): done
-- An independent reviewer read the whole branch. It found no cross-store data access. It found 1 critical
-  issue (sign-up could sign in as a brand-new account) and several important ones (two-step guessing,
-  QuickBooks company switch / cancel edge cases, import undo overwriting edits, upload size cap, invites).
-  All are fixed, each with a test (`tests/integration/review-fixes.test.ts`).
-- Sign-up no longer signs you in on the spot: the emailed link (or signing in with your password) does.
-- Verified in a fresh clone from GitHub: 309 tests, type check, production build, `npm audit` = 0,
-  162 real-browser checks (store isolation, every page on phone and desktop, sign-up, undo).
-
-## Next steps (in order)
-1. Owner review of the preview; merge `claude/loving-fermi-42tguu` into `main` when happy.
-2. QuickBooks sandbox test (needs the owner's Intuit developer keys): connect, bring in items/customers,
-   place an order, cancel it (void), reopen it. Everything so far is tested only against a fake QuickBooks.
-3. Optional: `ANTHROPIC_API_KEY` for smart product entry; Resend key for real emails.
-4. Before real customers: Postgres, hosting with HTTPS, Privacy Policy +
-   Terms (Intuit requires them), Intuit production approval, `DEMO_MODE="false"`.
-5. Then: Stripe Connect payments, standing orders, order cutoff times, email/SMS order alerts.
+## 8. Known small gaps
+- Pickup-only stores still show the status word "Delivered".
+- Undo history doesn't cover customer details or account-request decisions (products, special prices and
+  store settings are covered).
+- Same-name customers in one store link to the same QuickBooks customer (by design, to avoid duplicates).
