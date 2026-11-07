@@ -98,8 +98,21 @@ Read this first in any new session. Last updated 2026-11-06.
 - Cancelling an invoiced order voids the invoice in QuickBooks; reopening makes a fresh one (`ORD-1004-2`).
 - All of this runs against `tests/helpers/fake-qbo.ts`. The owner's sandbox test is still the real proof.
 
+### Phase 5 (smart product entry): done (needs an Anthropic API key to switch on)
+- Typing a new product's name fills in category + emoji, kind of item, unit, pack contents and "billed by
+  weight" (only fields the seller hasn't touched; they can change everything). Server-side only, rate-limited
+  per store and person. Uses Claude Opus 5.5 at low effort; set `ANTHROPIC_API_KEY` in `.env` to turn it on.
+  Cost is not measured yet (no key here); estimated well under 1 cent per product from list prices.
+  A cheaper model (Claude Haiku 5.5) is a one-line change in `lib/suggest.ts` if the owner wants it.
+
+### Phase 6 (undo, redo, history): done
+- Every product change, special-price change and store-settings change shows a toast with **Undo** (then
+  **Redo**). The **History** page lists everything with Undo/Redo. Undo refuses if the item was changed again
+  since (so nothing is silently overwritten). "Remove product" is reversible; removed products can be
+  restored from the Products page. Store-settings undo is owner-only.
+
 ## Next steps (in order)
-1. Phase 5 of the roadmap (smart product entry).
+1. Phase 7 of the roadmap (independent security review, final click-through, preview link).
 2. QuickBooks sandbox test (needs the owner's Intuit developer keys): connect, bring in items/customers,
    place an order, cancel it (void), reopen it.
 3. Before real customers: Postgres, hosting with HTTPS, Privacy Policy +
