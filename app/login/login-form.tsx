@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Spinner } from "@/components/status";
@@ -82,6 +83,10 @@ export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
         <button className="btn btn-primary btn-lg btn-block" disabled={busy}>
           {busy ? <Spinner /> : "Sign in"}
         </button>
+        <div className="auth-links">
+          <Link href="/forgot">Forgot password?</Link>
+          <Link href="/signup">Open a store</Link>
+        </div>
       </form>
     </div>
   );

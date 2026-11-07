@@ -1,4 +1,5 @@
 import { SupplierShell } from "@/components/supplier-shell";
+import { VerifyBanner } from "@/components/verify-banner";
 import { getSession } from "@/lib/auth";
 import { storeHeader } from "@/lib/data/stores";
 import { MANAGE, requireStorePage } from "@/lib/scope";
@@ -13,6 +14,7 @@ export default async function ManageLayout({ children, params }: { children: Rea
       qboConnected={Boolean(store.qboRealmId)}
       qboCompany={store.qboCompanyName ?? null}
     >
+      {store.status === "unverified" && <VerifyBanner isOwner={ctx.role === "owner"} />}
       {children}
     </SupplierShell>
   );

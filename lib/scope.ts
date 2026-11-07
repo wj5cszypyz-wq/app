@@ -42,7 +42,10 @@ export const resolveMembership = cache(async (userId: string, rawSlug: string): 
     where: { userId, store: { slug } },
     include: { store: { select: { id: true, slug: true, name: true, status: true } }, customer: { select: { storeId: true } } },
   });
-  if (!m || m.store.status !== "active" || !isRole(m.role)) return null;
+  if (!m || !isRole(m.role)) return null;
+  // "unverified": the owner hasn't confirmed their email yet. Sellers can set up; customers can't order.
+  const open = m.store.status === "active" || (m.store.status === "unverified" && m.role !== "buyer");
+  if (!open) return null;
   if (m.role === "buyer") {
     // A buyer must be tied to a customer of this same store.
     if (!m.customerId || !m.customer || m.customer.storeId !== m.store.id) return null;

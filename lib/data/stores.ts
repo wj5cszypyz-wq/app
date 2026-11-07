@@ -13,14 +13,17 @@ export async function storeHeader(ctx: StoreCtx) {
   asManager(ctx);
   return db.store.findUniqueOrThrow({
     where: { id: ctx.storeId },
-    select: { name: true, qboRealmId: true, qboCompanyName: true },
+    select: { name: true, status: true, qboRealmId: true, qboCompanyName: true },
   });
 }
 
 /** Every active store this person can use, for the "choose a store" page. */
 export async function listMembershipsForUser(userId: string): Promise<{ slug: string; storeName: string; role: Role }[]> {
   const rows = await db.membership.findMany({
-    where: { userId, store: { status: "active" } },
+    where: {
+      userId,
+      OR: [{ store: { status: "active" } }, { store: { status: "unverified" }, role: { in: ["owner", "staff"] } }],
+    },
     orderBy: { store: { name: "asc" } },
     select: { role: true, store: { select: { slug: true, name: true } } },
   });

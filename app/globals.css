@@ -405,3 +405,9 @@ h3 { font-size: 15px; }
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
 .store-pick:hover { border-color: var(--line-strong); }
+.input-prefix { display: flex; align-items: stretch; min-width: 0; }
+.input-prefix > span { display: flex; align-items: center; padding: 0 10px; border: 1px solid var(--line-strong); border-right: 0; border-radius: 10px 0 0 10px; background: var(--bg); color: var(--muted); font-size: 13px; white-space: nowrap; }
+.input-prefix > .input { border-radius: 0 10px 10px 0; min-width: 0; flex: 1; }
+.auth-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 13px; }
+.auth-links a { color: var(--green); }
+.notice-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; background: #fff7e6; border: 1px solid #f1dfb5; margin-bottom: 18px; font-size: 13.5px; }
