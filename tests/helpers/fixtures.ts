@@ -9,7 +9,7 @@ export async function makeStore(slug: string) {
   const n = ++seq;
   const store = await db.store.create({ data: { slug, name: `Store ${slug}` } });
   const user = (label: string) =>
-    db.user.create({ data: { email: `${label}-${slug}-${n}@test.local`.toLowerCase(), name: `${label} ${slug}`, passwordHash: "x" } });
+    db.user.create({ data: { email: `${label}-${slug}-${n}@test.local`.toLowerCase(), name: `${label} ${slug}`, passwordHash: "x", emailVerifiedAt: new Date() } });
 
   const [owner, staff, buyerA, buyerB] = await Promise.all([user("owner"), user("staff"), user("buyerA"), user("buyerB")]);
   const customerA = await db.customer.create({ data: { storeId: store.id, name: `Customer A ${slug}` } });

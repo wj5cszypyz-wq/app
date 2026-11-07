@@ -55,6 +55,6 @@ export async function consumeToken(raw: string, purpose: TokenPurpose): Promise<
 }
 
 /** Cancels earlier unused links of one kind (e.g. older password-reset emails). */
-export async function revokeTokens(where: { purpose: TokenPurpose; userId?: string; email?: string }) {
+export async function revokeTokens(where: { purpose: TokenPurpose; userId?: string; email?: string; storeId?: string }) {
   await db.authToken.updateMany({ where: { ...where, usedAt: null }, data: { usedAt: new Date() } });
 }

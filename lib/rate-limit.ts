@@ -21,7 +21,12 @@ export function reset(key: string) {
   buckets.delete(key);
 }
 
+/**
+ * The caller's IP for rate limits. Proxies append to X-Forwarded-For, so only the last entry (added by
+ * our own proxy) can be trusted; earlier entries are whatever the client claimed.
+ */
 export function clientIp(req: Request): string {
   const fwd = req.headers.get("x-forwarded-for");
-  return (fwd?.split(",")[0] ?? req.headers.get("x-real-ip") ?? "local").trim().slice(0, 64);
+  const last = fwd?.split(",").map((s) => s.trim()).filter(Boolean).at(-1);
+  return (last ?? req.headers.get("x-real-ip") ?? "local").slice(0, 64);
 }

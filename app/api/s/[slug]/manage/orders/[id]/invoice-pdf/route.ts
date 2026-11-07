@@ -14,8 +14,12 @@ export async function GET(_req: Request, { params }: Params<{ id: string }>) {
   if (!order) return notFoundResponse("Order not found.");
   if (!order.qboInvoiceId) return Response.json({ error: "This order isn't in QuickBooks yet." }, { status: 409 });
 
+  const store = await getStoreForCtx(ctx);
+  if (order.qboRealmId && order.qboRealmId !== store.qboRealmId) {
+    return Response.json({ error: "This invoice is in a different QuickBooks company than the one connected now." }, { status: 409 });
+  }
   try {
-    const pdf = await invoicePdf(await getStoreForCtx(ctx), order.qboInvoiceId);
+    const pdf = await invoicePdf(store, order.qboInvoiceId);
     const name = String(order.qboDocNumber ?? order.number).replace(/[^A-Za-z0-9-]/g, "");
     return new Response(pdf, {
       headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="invoice-${name}.pdf"` },

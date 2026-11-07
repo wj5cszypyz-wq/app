@@ -49,8 +49,8 @@ describe("login rate limit", () => {
     expect(hit(key, 3, 60_000)).toBe(0);
   });
 
-  it("reads the client IP from the proxy header", () => {
-    const req = new Request("http://x", { headers: { "x-forwarded-for": "203.0.113.9, 10.0.0.1" } });
+  it("reads the client IP from the entry our own proxy appended (the last one)", () => {
+    const req = new Request("http://x", { headers: { "x-forwarded-for": "6.6.6.6, 203.0.113.9" } });
     expect(clientIp(req)).toBe("203.0.113.9");
   });
 });

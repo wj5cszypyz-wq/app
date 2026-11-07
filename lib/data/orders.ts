@@ -171,6 +171,13 @@ export async function setOrderStatus(ctx: StoreCtx, id: string, status: string) 
 
   if (status === "cancelled" && order.status !== "cancelled" && order.qboInvoiceId) {
     await db.order.update({ where: { id }, data: { status } });
+    if (order.qboRealmId && order.qboRealmId !== order.store.qboRealmId) {
+      await db.order.update({
+        where: { id },
+        data: { qboSyncStatus: "void_failed", qboError: `Invoice ${order.qboDocNumber ?? ""} was made in a different QuickBooks company than the one connected now. Please void it in that company.`.slice(0, 500) },
+      });
+      return { status };
+    }
     try {
       await voidInvoice(order.store, order.qboInvoiceId);
       await db.order.update({ where: { id }, data: { qboSyncStatus: "voided", qboError: null } });
@@ -187,7 +194,7 @@ export async function setOrderStatus(ctx: StoreCtx, id: string, status: string) 
   if (order.status === "cancelled" && status !== "cancelled" && (order.qboSyncStatus === "voided" || order.qboSyncStatus === "void_failed")) {
     await db.order.update({
       where: { id },
-      data: { status, qboInvoiceId: null, qboDocNumber: null, qboSyncedAt: null, qboError: null, qboSyncStatus: "pending", qboAttempt: { increment: 1 } },
+      data: { status, qboInvoiceId: null, qboRealmId: null, qboDocNumber: null, qboSyncedAt: null, qboError: null, qboSyncStatus: "pending", qboAttempt: { increment: 1 } },
     });
     return { status, resync: true };
   }

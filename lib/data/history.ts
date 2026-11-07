@@ -1,7 +1,10 @@
 // Change history with undo and redo. Each change stores the fields it touched before and after.
 // Undo puts "before" back only if nothing has changed those fields since, then records itself as a
 // new change, so undoing the undo (redo) works the same way.
+import type { Prisma } from "@prisma/client";
 import { db } from "../db";
+
+type Client = Prisma.TransactionClient | typeof db;
 import type { StoreCtx } from "../scope";
 import { asManager } from "./guard";
 
@@ -33,32 +36,32 @@ export async function recordChange(
 }
 
 /** Reads the current values of the given fields (null if the thing no longer exists in this store). */
-async function current(entity: Entity, storeId: string, entityId: string, keys: string[]): Promise<Fields | null> {
+async function current(tx: Client, entity: Entity, storeId: string, entityId: string, keys: string[]): Promise<Fields | null> {
   if (entity === "product") {
-    const p = await db.product.findFirst({ where: { id: entityId, storeId } });
+    const p = await tx.product.findFirst({ where: { id: entityId, storeId } });
     return p ? Object.fromEntries(keys.map((k) => [k, (p as Record<string, unknown>)[k]])) : null;
   }
   if (entity === "store") {
-    const s = await db.store.findUnique({ where: { id: storeId } });
+    const s = await tx.store.findUnique({ where: { id: storeId } });
     return s && s.id === entityId ? Object.fromEntries(keys.map((k) => [k, (s as Record<string, unknown>)[k]])) : null;
   }
-  const customer = await db.customer.findFirst({ where: { id: entityId, storeId }, select: { id: true } });
+  const customer = await tx.customer.findFirst({ where: { id: entityId, storeId }, select: { id: true } });
   if (!customer) return null;
-  const rows = await db.customerPrice.findMany({ where: { customerId: entityId, productId: { in: keys } } });
+  const rows = await tx.customerPrice.findMany({ where: { customerId: entityId, productId: { in: keys } } });
   const map = new Map(rows.map((r) => [r.productId, r.priceCents]));
   return Object.fromEntries(keys.map((k) => [k, map.get(k) ?? null]));
 }
 
-async function apply(entity: Entity, storeId: string, entityId: string, values: Fields) {
+async function apply(tx: Client, entity: Entity, storeId: string, entityId: string, values: Fields) {
   if (entity === "product") {
-    await db.product.updateMany({ where: { id: entityId, storeId }, data: values });
+    await tx.product.updateMany({ where: { id: entityId, storeId }, data: values });
   } else if (entity === "store") {
-    await db.store.update({ where: { id: storeId }, data: values });
+    await tx.store.update({ where: { id: storeId }, data: values });
   } else {
     for (const [productId, cents] of Object.entries(values)) {
-      if (cents === null) await db.customerPrice.deleteMany({ where: { customerId: entityId, productId } });
+      if (cents === null) await tx.customerPrice.deleteMany({ where: { customerId: entityId, productId } });
       else
-        await db.customerPrice.upsert({
+        await tx.customerPrice.upsert({
           where: { customerId_productId: { customerId: entityId, productId } },
           create: { customerId: entityId, productId, priceCents: Number(cents) },
           update: { priceCents: Number(cents) },
@@ -78,16 +81,20 @@ export async function undoChange(ctx: StoreCtx, changeId: string): Promise<{ ok:
 
   const before = JSON.parse(change.before) as Fields;
   const after = JSON.parse(change.after) as Fields;
-  const now = await current(change.entity as Entity, storeId, change.entityId, Object.keys(after));
-  if (!now) return { ok: false, error: "That item no longer exists." };
-  if (!Object.keys(after).every((k) => same(now[k], after[k]))) {
-    return { ok: false, error: "This was changed again after that. Undo the later change first." };
-  }
-  // Claim it first so two clicks can't both undo it.
-  const claimed = await db.changeLog.updateMany({ where: { id: change.id, undoneAt: null }, data: { undoneAt: new Date() } });
-  if (claimed.count !== 1) return { ok: false, error: "That change was already undone." };
+  // Check, put back and mark as undone together: if anything fails, nothing changes and it can be retried.
+  const outcome = await db.$transaction(async (tx) => {
+    const now = await current(tx, change.entity as Entity, storeId, change.entityId, Object.keys(after));
+    if (!now) return { ok: false as const, error: "That item no longer exists." };
+    if (!Object.keys(after).every((k) => same(now[k], after[k]))) {
+      return { ok: false as const, error: "This was changed again after that. Undo the later change first." };
+    }
+    const claimed = await tx.changeLog.updateMany({ where: { id: change.id, undoneAt: null }, data: { undoneAt: new Date() } });
+    if (claimed.count !== 1) return { ok: false as const, error: "That change was already undone." };
+    await apply(tx, change.entity as Entity, storeId, change.entityId, before);
+    return { ok: true as const };
+  });
+  if (!outcome.ok) return outcome;
 
-  await apply(change.entity as Entity, storeId, change.entityId, before);
   const id = await recordChange(ctx, {
     entity: change.entity as Entity,
     entityId: change.entityId,

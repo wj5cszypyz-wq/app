@@ -14,8 +14,10 @@ const normalizeRecovery = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "
 
 /** Step 1 of turning it on: a new secret (not active until a code is confirmed). */
 export async function startTwoStep(userId: string) {
-  const user = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, totpEnabledAt: true } });
+  const user = await db.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true, totpEnabledAt: true, emailVerifiedAt: true } });
   if (user.totpEnabledAt) throw new Error("Two-step sign-in is already on.");
+  // Stops someone who signed up with a stranger's email from locking the real owner out later.
+  if (!user.emailVerifiedAt) throw new Error("Confirm your email first, then turn on two-step sign-in.");
   const secret = base32Encode(randomBytes(20));
   await db.user.update({ where: { id: userId }, data: { totpSecret: encrypt(secret), totpLastStep: null } });
   const label = encodeURIComponent(`${APP_NAME}:${user.email}`);
@@ -82,18 +84,40 @@ export async function beginTwoStepLogin(userId: string): Promise<string> {
   return issueToken({ purpose: "two_step", userId, ttlMs: TTL.two_step });
 }
 
+const PER_USER_FAILURES = 20;
+const failures = new Map<string, { count: number; until: number }>();
+
+/** Wrong codes across all of a person's sign-in attempts: after 20 in 15 minutes, two-step is locked for 15 minutes. */
+function lockedOut(userId: string): boolean {
+  const f = failures.get(userId);
+  return Boolean(f && f.until > Date.now() && f.count >= PER_USER_FAILURES);
+}
+function noteFailure(userId: string) {
+  const now = Date.now();
+  const f = failures.get(userId);
+  if (!f || f.until <= now) failures.set(userId, { count: 1, until: now + 15 * 60_000 });
+  else f.count++;
+}
+
 export async function finishTwoStepLogin(ticket: string, code: string): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
   const expired = { ok: false as const, error: "This sign-in expired. Start again." };
   const row = await peekToken(ticket, "two_step");
   if (!row?.userId) return expired;
-  if (row.attempts >= MAX_ATTEMPTS) {
+  if (lockedOut(row.userId)) return { ok: false, error: "Too many wrong codes. Wait 15 minutes, then sign in again." };
+  // Count the attempt before checking it, atomically, so parallel guesses can't get past the limit.
+  const counted = await db.authToken.updateMany({
+    where: { id: row.id, usedAt: null, attempts: { lt: MAX_ATTEMPTS } },
+    data: { attempts: { increment: 1 } },
+  });
+  if (counted.count !== 1) {
     await consumeToken(ticket, "two_step");
     return expired;
   }
   if (!(await checkCode(row.userId, typeof code === "string" ? code : ""))) {
-    await db.authToken.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
+    noteFailure(row.userId);
     return { ok: false, error: "That code isn't right." };
   }
   const used = await consumeToken(ticket, "two_step");
+  if (used) failures.delete(row.userId);
   return used ? { ok: true, userId: row.userId } : expired;
 }

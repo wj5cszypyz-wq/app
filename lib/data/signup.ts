@@ -74,7 +74,7 @@ export async function signUpSeller(input: SignUpInput): Promise<SignUpResult> {
 }
 
 /** Confirms the email from the link; opens every unverified store this person owns. */
-export async function verifyEmail(token: string): Promise<{ ok: true; slug: string | null } | { ok: false }> {
+export async function verifyEmail(token: string): Promise<{ ok: true; slug: string | null; userId: string } | { ok: false }> {
   const row = await consumeToken(token, "verify_email");
   if (!row?.userId) return { ok: false };
   const user = await db.user.update({
@@ -84,17 +84,7 @@ export async function verifyEmail(token: string): Promise<{ ok: true; slug: stri
   });
   const unverified = user.memberships.filter((m) => m.store.status === "unverified").map((m) => m.storeId);
   if (unverified.length) await db.store.updateMany({ where: { id: { in: unverified } }, data: { status: "active" } });
-  return { ok: true, slug: user.memberships[0]?.store.slug ?? null };
-}
-
-/** After sign-up: the new owner's id and store address if this email was just created (else null). */
-export async function freshSignup(email: string): Promise<{ userId: string; slug: string } | null> {
-  const user = await db.user.findUnique({
-    where: { email },
-    select: { id: true, emailVerifiedAt: true, createdAt: true, memberships: { select: { store: { select: { slug: true } } } } },
-  });
-  const fresh = user && !user.emailVerifiedAt && Date.now() - user.createdAt.getTime() < 60_000 && user.memberships.length === 1;
-  return fresh ? { userId: user.id, slug: user.memberships[0].store.slug } : null;
+  return { ok: true, slug: user.memberships[0]?.store.slug ?? null, userId: user.id };
 }
 
 /** Sends the confirmation email again if this person hasn't confirmed yet. */

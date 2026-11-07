@@ -85,7 +85,7 @@ async function seedStore(opts: {
 
   for (const [u, role] of [[opts.owner, "owner"], [opts.staff, "staff"]] as const) {
     await db.user.create({
-      data: { ...u, passwordHash: opts.hash, memberships: { create: { storeId: store.id, role } } },
+      data: { ...u, passwordHash: opts.hash, emailVerifiedAt: new Date(), memberships: { create: { storeId: store.id, role } } },
     });
   }
 
@@ -97,6 +97,7 @@ async function seedStore(opts: {
         email: c.email,
         name: c.contactName,
         passwordHash: opts.hash,
+        emailVerifiedAt: new Date(),
         memberships: { create: { storeId: store.id, role: "buyer", customerId: customer.id } },
       },
     });

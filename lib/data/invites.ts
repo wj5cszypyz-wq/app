@@ -6,9 +6,13 @@ import { emailProblem, hashPassword, passwordProblem } from "../passwords";
 import type { StoreCtx } from "../scope";
 import { consumeToken, issueToken, peekToken, revokeTokens, TTL } from "../tokens";
 import { DataError } from "./errors";
+import { hit } from "../rate-limit";
 import { asManager } from "./guard";
 
 async function sendInvite(opts: { email: string; storeId: string; storeName: string; role: "buyer" | "staff"; customerId?: string }) {
+  const store = await db.store.findUnique({ where: { id: opts.storeId }, select: { status: true } });
+  if (store?.status !== "active") throw new DataError("Confirm your email first. Invites can be sent once your store is open.");
+  if (hit(`invites:${opts.storeId}`, 200, 24 * 3_600_000)) throw new DataError("You've sent a lot of invites today. Try again tomorrow.", 409);
   await db.authToken.updateMany({
     where: { purpose: "invite", email: opts.email, storeId: opts.storeId, usedAt: null },
     data: { usedAt: new Date() },
@@ -141,7 +145,7 @@ export async function acceptInvite(
     }
     return { userId: user.id, role: already?.role ?? row.role! };
   });
-  await revokeTokens({ purpose: "invite", email: row.email });
+  await revokeTokens({ purpose: "invite", email: row.email, storeId: row.storeId }); // other stores' invites stay valid
   return {
     ok: true,
     userId: result.userId,

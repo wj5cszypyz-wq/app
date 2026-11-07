@@ -8,7 +8,7 @@ let secret: string;
 const nowS = () => Date.now() / 1000;
 
 beforeAll(async () => {
-  userId = (await db.user.create({ data: { email: "two-step@test.local", name: "Two Step", passwordHash: "x" } })).id;
+  userId = (await db.user.create({ data: { email: "two-step@test.local", name: "Two Step", passwordHash: "x", emailVerifiedAt: new Date() } })).id;
 });
 
 describe("two-step setup", () => {

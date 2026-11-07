@@ -184,6 +184,8 @@ model Order {
 
   qboSyncStatus String    @default("pending")
   qboInvoiceId  String?
+  // The QuickBooks company (realm) the invoice was created in; invoices are only touched in that company.
+  qboRealmId    String?
   qboDocNumber  String?
   qboSyncedAt   DateTime?
   qboError      String?
@@ -193,7 +195,7 @@ model Order {
   lines OrderLine[]
 
   @@unique([storeId, number])
-  @@unique([storeId, qboInvoiceId])
+  @@unique([storeId, qboRealmId, qboInvoiceId])
   @@index([storeId, createdAt])
 }
 

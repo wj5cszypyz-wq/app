@@ -27,7 +27,7 @@ describe("seller sign-up", () => {
   it("confirming the email opens the store", async () => {
     const { verifyEmail } = await import("../../lib/data/signup");
     const token = linkFrom(outbox.at(-1)!.text, "/verify");
-    expect(await verifyEmail(token)).toEqual({ ok: true, slug: "glow-works" });
+    expect(await verifyEmail(token)).toMatchObject({ ok: true, slug: "glow-works" });
     expect((await db.store.findUniqueOrThrow({ where: { slug: "glow-works" } })).status).toBe("active");
     expect((await db.user.findUniqueOrThrow({ where: { email: "rosa@glow.test" } })).emailVerifiedAt).not.toBeNull();
     expect(await verifyEmail(token)).toEqual({ ok: false });

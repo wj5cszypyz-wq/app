@@ -18,8 +18,16 @@ export async function listAllStores() {
   return stores.map(({ memberships, ...s }) => ({ ...s, ownerEmail: memberships[0]?.user.email ?? null }));
 }
 
-/** False if there is no such store. */
+/**
+ * Suspends or reopens a store. False if there is no such store. Reopening never skips the
+ * email-confirmation step: a store whose owner hasn't confirmed goes back to "unverified".
+ */
 export async function setStoreStatus(storeId: string, status: "active" | "suspended"): Promise<boolean> {
-  const r = await db.store.updateMany({ where: { id: storeId }, data: { status } });
+  let next: string = status;
+  if (status === "active") {
+    const owner = await db.membership.findFirst({ where: { storeId, role: "owner" }, select: { user: { select: { emailVerifiedAt: true } } } });
+    if (!owner?.user.emailVerifiedAt) next = "unverified";
+  }
+  const r = await db.store.updateMany({ where: { id: storeId }, data: { status: next } });
   return r.count === 1;
 }

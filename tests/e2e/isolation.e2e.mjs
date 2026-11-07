@@ -112,8 +112,16 @@ for (const width of [390, 1280]) {
   await pg.fill("#f-storeName", "E2E Candles");
   await pg.fill("#f-slug", slug);
   await pg.click("button[type=submit], form button.btn-primary");
-  await pg.waitForURL(`**/s/${slug}/manage/setup`, { timeout: 15000 }).catch(() => {});
-  ok(new URL(pg.url()).pathname === `/s/${slug}/manage/setup`, `sign-up lands on the new store's setup (${pg.url()})`);
+  await pg.getByText("Check your email").waitFor({ timeout: 15000 }).catch(() => {});
+  ok((await pg.getByText("Check your email").count()) > 0, "sign-up asks to check email (no automatic sign-in)");
+  ok(!(await ctx.cookies()).some((c) => c.name.includes("larder_sid")), "sign-up alone doesn't sign anyone in");
+  // The new owner can sign in with their password and set up while the store is unconfirmed.
+  await pg.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+  await pg.fill("#email", `${slug}@example.test`);
+  await pg.fill("#password", "a-long-test-password");
+  await pg.click("form button.btn-primary");
+  await pg.waitForURL(`**/s/${slug}/manage`, { timeout: 15000 }).catch(() => {});
+  ok(new URL(pg.url()).pathname === `/s/${slug}/manage`, `new owner signs in to their store (${pg.url()})`);
   ok((await pg.getByText("isn't open to customers yet").count()) > 0, "sign-up: confirm-email notice shows");
   const overflow = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(overflow <= 0, `sign-up: new store fits the phone screen (overflow ${overflow}px)`);

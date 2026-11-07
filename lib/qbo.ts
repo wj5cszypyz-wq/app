@@ -352,7 +352,7 @@ export async function ensureCustomer(store: Store, r: Customer): Promise<string>
     } catch (err) {
       if (err instanceof QboError && err.code === "6240") {
         throw new QboError(
-          `QuickBooks already has a vendor or employee named "${displayName}". Rename this customer here or in QuickBooks, then press Retry.`,
+          `QuickBooks already has a customer, vendor or employee named "${displayName}". Press Retry first (another order may have just added this customer). If it still fails, rename this customer here or in QuickBooks.`,
           err.status,
           err.code,
         );

@@ -77,7 +77,7 @@ export async function importFromQbo(ctx: StoreCtx, kind: ImportKind, ids: string
   const wanted = new Set(ids.filter((x) => typeof x === "string").slice(0, 5000));
   if (wanted.size === 0) throw new DataError("Pick at least one row to bring in.");
   const created: string[] = [];
-  const updated: { id: string; before: Record<string, unknown> }[] = [];
+  const updated: { id: string; before: Record<string, unknown>; after: Record<string, unknown> }[] = [];
   let linked = 0;
 
   if (kind === "items") {
@@ -87,13 +87,14 @@ export async function importFromQbo(ctx: StoreCtx, kind: ImportKind, ids: string
       const priceCents = Math.max(0, Math.round((i.UnitPrice ?? 0) * 100));
       const existing = await db.product.findUnique({ where: { storeId_qboItemId: { storeId: store.id, qboItemId: i.Id } } });
       if (existing) {
-        updated.push({ id: existing.id, before: { name: existing.name, priceCents: existing.priceCents, description: existing.description } });
-        await db.product.update({ where: { id: existing.id }, data: { name, priceCents: priceCents || existing.priceCents, description: i.Description ?? existing.description } });
+        const data = { name, priceCents: priceCents || existing.priceCents, description: i.Description ?? existing.description };
+        updated.push({ id: existing.id, before: { name: existing.name, priceCents: existing.priceCents, description: existing.description }, after: data });
+        await db.product.update({ where: { id: existing.id }, data });
         continue;
       }
       const skuMatch = i.Sku ? await db.product.findUnique({ where: { storeId_sku: { storeId: store.id, sku: i.Sku.toUpperCase() } } }) : null;
       if (skuMatch && !skuMatch.qboItemId) {
-        updated.push({ id: skuMatch.id, before: { qboItemId: null } });
+        updated.push({ id: skuMatch.id, before: { qboItemId: null }, after: { qboItemId: i.Id } });
         await db.product.update({ where: { id: skuMatch.id }, data: { qboItemId: i.Id } });
         linked++;
         continue;
@@ -127,13 +128,13 @@ export async function importFromQbo(ctx: StoreCtx, kind: ImportKind, ids: string
         address: addressOf(c)?.slice(0, 300) ?? null,
       };
       if (existing) {
-        updated.push({ id: existing.id, before: { name: existing.name, contactName: existing.contactName, email: existing.email, phone: existing.phone, address: existing.address } });
+        updated.push({ id: existing.id, before: { name: existing.name, contactName: existing.contactName, email: existing.email, phone: existing.phone, address: existing.address }, after: data });
         await db.customer.update({ where: { id: existing.id }, data });
         continue;
       }
       const sameName = await db.customer.findFirst({ where: { storeId: store.id, qboCustomerId: null, name: c.DisplayName } });
       if (sameName) {
-        updated.push({ id: sameName.id, before: { qboCustomerId: null } });
+        updated.push({ id: sameName.id, before: { qboCustomerId: null }, after: { qboCustomerId: c.Id } });
         await db.customer.update({ where: { id: sameName.id }, data: { qboCustomerId: c.Id } });
         linked++;
         continue;
@@ -156,7 +157,12 @@ export async function undoImport(ctx: StoreCtx, batchId: string) {
   if (claimed.count !== 1) return null;
   const batch = await db.importBatch.findUniqueOrThrow({ where: { id: batchId } });
   const created: string[] = JSON.parse(batch.created);
-  const updated: { id: string; before: Record<string, unknown> }[] = JSON.parse(batch.updated);
+  const updated: { id: string; before: Record<string, unknown>; after?: Record<string, unknown> }[] = JSON.parse(batch.updated);
+  // Only put back fields that still hold what the import set; anything edited since stays as it is.
+  const stillImported = (row: Record<string, unknown> | null, u: (typeof updated)[number]) =>
+    Object.fromEntries(
+      Object.entries(u.before).filter(([k]) => !u.after || JSON.stringify(row?.[k] ?? null) === JSON.stringify(u.after[k] ?? null)),
+    );
   let removed = 0;
   let archived = 0;
   let kept = 0;
@@ -171,14 +177,22 @@ export async function undoImport(ctx: StoreCtx, batchId: string) {
         removed += (await db.product.deleteMany({ where: { id, storeId } })).count;
       }
     }
-    for (const u of updated) await db.product.updateMany({ where: { id: u.id, storeId }, data: u.before });
+    for (const u of updated) {
+      const row = await db.product.findFirst({ where: { id: u.id, storeId } });
+      const data = stillImported(row as Record<string, unknown> | null, u);
+      if (Object.keys(data).length) await db.product.updateMany({ where: { id: u.id, storeId }, data });
+    }
   } else if (batch.kind === "customers") {
     for (const id of created) {
       const busy = (await db.order.count({ where: { customerId: id } })) + (await db.membership.count({ where: { customerId: id } }));
       if (busy) kept++;
       else removed += (await db.customer.deleteMany({ where: { id, storeId } })).count;
     }
-    for (const u of updated) await db.customer.updateMany({ where: { id: u.id, storeId }, data: u.before });
+    for (const u of updated) {
+      const row = await db.customer.findFirst({ where: { id: u.id, storeId } });
+      const data = stillImported(row as Record<string, unknown> | null, u);
+      if (Object.keys(data).length) await db.customer.updateMany({ where: { id: u.id, storeId }, data });
+    }
   } else if (batch.kind === "invoices") {
     removed = (await db.pastInvoice.deleteMany({ where: { batchId, storeId } })).count;
   }

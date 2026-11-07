@@ -4,7 +4,7 @@ import { db } from "./db";
 import { buildInvoicePayload, qboLineQty } from "./invoice";
 import { formatQty } from "./money";
 import { isoDate } from "./orders";
-import { createInvoice, ensureCustomer, ensureIncomeAccount, ensureItem, qboConfigured } from "./qbo";
+import { createInvoice, ensureCustomer, ensureIncomeAccount, ensureItem, qboConfigured, voidInvoice } from "./qbo";
 
 export async function syncOrderToQuickBooks(orderId: string) {
   const order = await db.order.findUnique({
@@ -24,6 +24,7 @@ export async function syncOrderToQuickBooks(orderId: string) {
     where: {
       id: orderId,
       qboInvoiceId: null,
+      status: { not: "cancelled" }, // a cancelled order never becomes an invoice
       OR: [{ qboSyncStatus: { not: "syncing" } }, { updatedAt: { lt: new Date(Date.now() - 5 * 60_000) } }],
     },
     data: { qboSyncStatus: "syncing" },
@@ -65,16 +66,31 @@ export async function syncOrderToQuickBooks(orderId: string) {
     });
 
     const invoice = await createInvoice(store, payload, `order-${order.id}-${order.qboAttempt}`);
-    return db.order.update({
+    const saved = await db.order.update({
       where: { id: orderId },
       data: {
         qboSyncStatus: "synced",
+        qboRealmId: store.qboRealmId,
         qboInvoiceId: invoice.Id,
         qboDocNumber: invoice.DocNumber ?? null,
         qboSyncedAt: new Date(),
         qboError: null,
       },
     });
+    // Cancelled while the invoice was being created: void it straight away.
+    if (saved.status === "cancelled") {
+      try {
+        await voidInvoice(store, invoice.Id);
+        return db.order.update({ where: { id: orderId }, data: { qboSyncStatus: "voided" } });
+      } catch (err) {
+        const why = err instanceof Error ? err.message : "QuickBooks error";
+        return db.order.update({
+          where: { id: orderId },
+          data: { qboSyncStatus: "void_failed", qboError: `Couldn't void invoice ${invoice.DocNumber ?? ""} (${why}). Please void it in QuickBooks.`.slice(0, 500) },
+        });
+      }
+    }
+    return saved;
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error(`[qbo] order ${order.number} failed:`, message);

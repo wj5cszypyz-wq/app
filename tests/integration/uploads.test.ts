@@ -53,7 +53,7 @@ describe("uploads", () => {
   it("files over 8 MB are refused", async () => {
     const big = Buffer.concat([PNG_1X1, Buffer.alloc(8 * 1024 * 1024)]);
     const res = await upload(a.tokens.owner, "up-a", imageForm(big));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(413);
     expect((await res.json()).error).toMatch(/8 MB/);
   });
 

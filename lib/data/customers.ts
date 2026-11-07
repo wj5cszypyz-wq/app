@@ -51,6 +51,8 @@ export async function createCustomer(ctx: StoreCtx, input: NewCustomer) {
   const pending = await db.customer.findFirst({ where: { storeId, email }, select: { id: true } });
   if (taken || pending) throw new DataError("This email already has access to this store.");
 
+  const open = await db.store.findUnique({ where: { id: storeId }, select: { status: true } });
+  if (open?.status !== "active") throw new DataError("Confirm your email first. You can add customers once your store is open.");
   const customer = await db.customer.create({
     data: {
       storeId,

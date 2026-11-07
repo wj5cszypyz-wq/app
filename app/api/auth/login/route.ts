@@ -32,10 +32,10 @@ export async function POST(req: Request) {
   const ok = await bcrypt.compare(body.password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok) return Response.json({ error: "That email and password don't match." }, { status: 401 });
 
-  reset(`email:${email}`);
   if (user.totpEnabledAt) {
     // Password was right, but two-step is on: no session until the code is checked.
     return Response.json({ twoStep: true, ticket: await beginTwoStepLogin(user.id) });
   }
+  reset(`email:${email}`); // only once fully signed in; with two-step on, the limit stays until the code is right
   return completeSignIn(user.id, body.next);
 }

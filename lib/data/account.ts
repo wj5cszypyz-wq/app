@@ -27,8 +27,12 @@ export async function resetPassword(token: string, password: string): Promise<Re
   if (problem) return { ok: false, error: problem };
   const row = await consumeToken(token, "reset_password");
   if (!row?.userId) return { ok: false, error: "This link has expired or was already used." };
+  const before = await db.user.findUniqueOrThrow({ where: { id: row.userId }, select: { emailVerifiedAt: true } });
+  // First proof that this person owns the email: anything set up before then (e.g. two-step by someone
+  // who signed up with their address) is cleared.
+  const firstProof = before.emailVerifiedAt ? {} : { totpSecret: null, totpEnabledAt: null, totpLastStep: null, recoveryCodes: null };
   await db.$transaction([
-    db.user.update({ where: { id: row.userId }, data: { passwordHash: await hashPassword(password), emailVerifiedAt: new Date() } }),
+    db.user.update({ where: { id: row.userId }, data: { passwordHash: await hashPassword(password), emailVerifiedAt: new Date(), ...firstProof } }),
     db.session.deleteMany({ where: { userId: row.userId } }),
   ]);
   return { ok: true };
