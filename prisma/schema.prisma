@@ -41,6 +41,11 @@ model User {
   name            String
   passwordHash    String
   isPlatformAdmin Boolean      @default(false)
+  emailVerifiedAt DateTime?
+  // Two-step sign-in: secret encrypted with lib/crypto.ts; recovery codes stored as SHA-256 hashes (JSON array).
+  totpSecret      String?
+  totpEnabledAt   DateTime?
+  recoveryCodes   String?
   createdAt       DateTime     @default(now())
   sessions        Session[]
   memberships     Membership[]
@@ -170,4 +175,24 @@ model OrderLine {
   qty            Float
   unitPriceCents Int
   lineTotalCents Int
+}
+
+// Every emailed one-time link (verify email, reset password, invite) and two-step sign-in tickets.
+// Only SHA-256(token) is stored; each is single-use and expires.
+// purpose: "verify_email" | "reset_password" | "invite" | "two_step"
+model AuthToken {
+  id         String    @id
+  purpose    String
+  userId     String?
+  email      String?
+  storeId    String?
+  customerId String?
+  role       String?
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, purpose])
+  @@index([email, purpose])
 }
