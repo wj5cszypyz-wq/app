@@ -118,29 +118,32 @@ model Customer {
 // unit: the unit it's sold by (lib/units.ts); unitKind: weight|liquid|paper|length|count|packed.
 // packSize is display text generated from packCount/packAmount/packUnit (kept so old orders still read well).
 model Product {
-  id          String          @id @default(cuid())
-  storeId     String
-  store       Store           @relation(fields: [storeId], references: [id])
-  sku         String
-  name        String
-  category    String
-  unit        String
-  unitKind    String          @default("count")
-  packCount   Int?
-  packAmount  Float?
-  packUnit    String?
-  byWeight    Boolean         @default(false)
-  description String?
-  imageIds    String?
-  packSize    String?
-  priceCents  Int
-  inStock     Boolean         @default(true)
-  active      Boolean         @default(true)
-  qboItemId   String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  prices      CustomerPrice[]
-  lines       OrderLine[]
+  id            String          @id @default(cuid())
+  storeId       String
+  store         Store           @relation(fields: [storeId], references: [id])
+  sku           String
+  name          String
+  category      String
+  unit          String
+  unitKind      String          @default("count")
+  packCount     Int?
+  packAmount    Float?
+  packUnit      String?
+  byWeight      Boolean         @default(false)
+  description   String?
+  imageIds      String?
+  packSize      String?
+  priceCents    Int
+  inStock       Boolean         @default(true)
+  active        Boolean         @default(true)
+  qboItemId     String?
+  // In QuickBooks, 1 sell unit = qboUnitFactor × qboUnitLabel (e.g. 1 case = 40 lb).
+  qboUnitFactor Float           @default(1)
+  qboUnitLabel  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  prices        CustomerPrice[]
+  lines         OrderLine[]
 
   @@unique([storeId, sku])
 }

@@ -1,7 +1,8 @@
 // Turns an order into a QuickBooks invoice. Never throws: the result is recorded on the order
 // so the store can see exactly what happened and retry.
 import { db } from "./db";
-import { buildInvoicePayload } from "./invoice";
+import { buildInvoicePayload, qboLineQty } from "./invoice";
+import { formatQty } from "./money";
 import { isoDate } from "./orders";
 import { createInvoice, ensureCustomer, ensureIncomeAccount, ensureItem, qboConfigured } from "./qbo";
 
@@ -47,13 +48,19 @@ export async function syncOrderToQuickBooks(orderId: string) {
       txnDate: isoDate(order.createdAt),
       dueDate: order.deliveryDate ? isoDate(order.deliveryDate) : null,
       notes: order.notes,
-      lines: order.lines.map((l) => ({
-        itemId: itemIds.get(l.productId)!,
-        description: [l.name, l.packSize, `per ${l.unit}`].filter(Boolean).join(" · "),
-        qty: l.qty,
-        unitPriceCents: l.unitPriceCents,
-        lineTotalCents: l.lineTotalCents,
-      })),
+      lines: order.lines.map((l) => {
+        const q = qboLineQty(l.qty, l.product.qboUnitFactor, l.unitPriceCents, l.lineTotalCents);
+        const ordered = q.converted
+          ? `${formatQty(l.qty)} ${l.unit} (${formatQty(q.qty)} ${l.product.qboUnitLabel ?? "units"})`
+          : `per ${l.unit}`;
+        return {
+          itemId: itemIds.get(l.productId)!,
+          description: [l.name, l.packSize, ordered, l.product.byWeight ? "billed by actual weight" : null].filter(Boolean).join(" · "),
+          qty: q.qty,
+          rate: q.rate,
+          lineTotalCents: l.lineTotalCents,
+        };
+      }),
     });
 
     const invoice = await createInvoice(store, payload, `order-${order.id}-${order.qboAttempt}`);

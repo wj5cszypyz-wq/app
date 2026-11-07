@@ -34,6 +34,8 @@ export function ProductForm(props: {
     packUnit: p?.packUnit ?? "",
     byWeight: p?.byWeight ?? false,
     price: p ? (p.priceCents / 100).toFixed(2) : "",
+    qboFactor: p ? String(p.qboUnitFactor) : "1",
+    qboLabel: p?.qboUnitLabel ?? "",
   });
   const [images, setImages] = useState<string[]>(p ? photoIds(p) : []);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export function ProductForm(props: {
       byWeight: f.byWeight,
       price: f.price,
       imageIds: images,
+      ...(p?.qboItemId ? { qboUnitFactor: f.qboFactor || "1", qboUnitLabel: f.qboLabel } : {}),
     };
     const res = await fetch(paths.api(p ? `/manage/products/${p.id}` : "/manage/products"), {
       method: p ? "PATCH" : "POST",
@@ -80,7 +83,7 @@ export function ProductForm(props: {
     if (!res.ok) return setError(json.error ?? "Couldn't save.");
     props.onSaved(
       p
-        ? { ...p, ...body, description: f.description || null, category: body.category, packCount: Number(f.packCount) || null, packAmount: Number(f.packAmount) || null, packUnit: body.packUnit, packSize: pack, priceCents: parseMoney(f.price) ?? p.priceCents, sku: f.sku.trim().toUpperCase(), imageIds: JSON.stringify(images) }
+        ? { ...p, ...body, qboUnitFactor: Number(f.qboFactor) || 1, qboUnitLabel: f.qboLabel || null, description: f.description || null, category: body.category, packCount: Number(f.packCount) || null, packAmount: Number(f.packAmount) || null, packUnit: body.packUnit, packSize: pack, priceCents: parseMoney(f.price) ?? p.priceCents, sku: f.sku.trim().toUpperCase(), imageIds: JSON.stringify(images) }
         : (json.product as Product),
     );
   }
@@ -157,6 +160,17 @@ export function ProductForm(props: {
           </label>
         )}
 
+        {p?.qboItemId && (
+          <div className="field span-3">
+            <label htmlFor="pf-qbo">How QuickBooks counts it</label>
+            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+              <span className="muted" style={{ fontSize: 13.5 }}>1 {f.unit} =</span>
+              <input id="pf-qbo" className="input" style={{ width: 90 }} inputMode="decimal" value={f.qboFactor} onChange={(e) => set("qboFactor", e.target.value.replace(/[^\d.]/g, ""))} />
+              <input className="input" style={{ width: 120 }} aria-label="QuickBooks unit" placeholder={f.unit} maxLength={20} value={f.qboLabel} onChange={(e) => set("qboLabel", e.target.value)} />
+              <span className="dim" style={{ fontSize: 12 }}>in QuickBooks. Leave 1 if QuickBooks counts it the same way.</span>
+            </div>
+          </div>
+        )}
         <div className="field span-3">
           <label htmlFor="pf-desc">Description (optional)</label>
           <textarea id="pf-desc" className="input" rows={2} maxLength={2000} value={f.description} onChange={(e) => set("description", e.target.value)} />

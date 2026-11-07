@@ -14,6 +14,9 @@ export type Product = {
   priceCents: number;
   inStock: boolean;
   imageIds: string | null;
+  qboItemId: string | null;
+  qboUnitFactor: number;
+  qboUnitLabel: string | null;
 };
 
 export type Category = { id: string; name: string; emoji: string };

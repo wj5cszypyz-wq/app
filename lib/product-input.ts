@@ -20,6 +20,8 @@ export type ProductInput = {
   inStock?: boolean;
   active?: boolean;
   imageIds?: string[];
+  qboUnitFactor?: number;
+  qboUnitLabel?: string | null;
 };
 
 const has = (b: Record<string, unknown>, k: string) => Object.prototype.hasOwnProperty.call(b, k) && b[k] !== undefined;
@@ -97,6 +99,16 @@ export function parseProductInput(body: unknown, partial: boolean): ProductInput
       return { error: "Up to 4 photos per product." };
     }
     out.imageIds = b.imageIds as string[];
+  }
+  if (has(b, "qboUnitFactor")) {
+    const f = Number(b.qboUnitFactor);
+    if (!Number.isFinite(f) || f <= 0 || f > 100_000) return { error: "Enter how many QuickBooks units one item is (e.g. 40)." };
+    out.qboUnitFactor = f;
+  }
+  if (has(b, "qboUnitLabel")) {
+    const l = text(b.qboUnitLabel);
+    if (l.length > 20) return { error: "QuickBooks unit name is too long." };
+    out.qboUnitLabel = l || null;
   }
   if (partial && Object.keys(out).length === 0) return { error: "Nothing to update." };
   return out;

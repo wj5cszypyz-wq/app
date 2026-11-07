@@ -12,7 +12,7 @@ const SCOPE = "com.intuit.quickbooks.accounting";
 const MINOR_VERSION = "75";
 
 export class QboError extends Error {
-  constructor(message: string, readonly status?: number) {
+  constructor(message: string, readonly status?: number, readonly code?: string) {
     super(message);
   }
 }
@@ -196,11 +196,11 @@ async function accessToken(store: Store): Promise<string> {
   }
 }
 
-function faultMessage(text: string): string | null {
+function parseFault(text: string): { message: string; code?: string } | null {
   try {
     const json = JSON.parse(text);
     const e = json?.Fault?.Error?.[0];
-    if (e) return [e.Message, e.Detail].filter(Boolean).join(": ");
+    if (e) return { message: [e.Message, e.Detail].filter(Boolean).join(": "), code: e.code ? String(e.code) : undefined };
   } catch {
     // not JSON
   }
@@ -232,7 +232,8 @@ async function qboRequest(store: Store, path: string, opts: RequestOptions = {})
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new QboError(faultMessage(text) ?? `QuickBooks returned an error (${res.status}).`, res.status);
+    const f = parseFault(text);
+    throw new QboError(f?.message ?? `QuickBooks returned an error (${res.status}).`, res.status, f?.code);
   }
   return res;
 }
@@ -305,25 +306,42 @@ export async function ensureIncomeAccount(store: Store): Promise<string> {
   return pick.Id;
 }
 
-/** Finds the customer in QuickBooks by name, or creates it as a Customer. */
+/** Finds the customer in QuickBooks by name (active or not), or creates it. Never makes a duplicate. */
 export async function ensureCustomer(store: Store, r: Customer): Promise<string> {
   if (r.qboCustomerId) return r.qboCustomerId;
   const displayName = r.name.replace(/:/g, "-").slice(0, 500);
-  const found = await query<Ref>(store, `select * from Customer where DisplayName = ${qboQuote(displayName)}`);
+  const found = await query<Ref & { Active?: boolean }>(
+    store,
+    `select * from Customer where DisplayName = ${qboQuote(displayName)} and Active IN (true, false)`,
+  );
+  if (found[0] && found[0].Active === false) {
+    throw new QboError(`"${displayName}" is inactive in QuickBooks. Make the customer active in QuickBooks, then press Retry.`);
+  }
   let id = found[0]?.Id;
   if (!id) {
-    const res = await qboRequest(store, "customer", {
-      method: "POST",
-      body: {
-        DisplayName: displayName,
-        CompanyName: r.name.slice(0, 100),
-        ...(r.contactName ? { GivenName: r.contactName.slice(0, 100) } : {}),
-        ...(r.email ? { PrimaryEmailAddr: { Address: r.email } } : {}),
-        ...(r.phone ? { PrimaryPhone: { FreeFormNumber: r.phone } } : {}),
-        ...(r.address ? { BillAddr: { Line1: r.address.slice(0, 500) } } : {}),
-      },
-    });
-    id = ((await res.json()) as { Customer: Ref }).Customer.Id;
+    try {
+      const res = await qboRequest(store, "customer", {
+        method: "POST",
+        body: {
+          DisplayName: displayName,
+          CompanyName: r.name.slice(0, 100),
+          ...(r.contactName ? { GivenName: r.contactName.slice(0, 100) } : {}),
+          ...(r.email ? { PrimaryEmailAddr: { Address: r.email } } : {}),
+          ...(r.phone ? { PrimaryPhone: { FreeFormNumber: r.phone } } : {}),
+          ...(r.address ? { BillAddr: { Line1: r.address.slice(0, 500) } } : {}),
+        },
+      });
+      id = ((await res.json()) as { Customer: Ref }).Customer.Id;
+    } catch (err) {
+      if (err instanceof QboError && err.code === "6240") {
+        throw new QboError(
+          `QuickBooks already has a vendor or employee named "${displayName}". Rename this customer here or in QuickBooks, then press Retry.`,
+          err.status,
+          err.code,
+        );
+      }
+      throw err;
+    }
   }
   await db.customer.update({ where: { id: r.id }, data: { qboCustomerId: id } });
   return id;
@@ -333,7 +351,10 @@ export async function ensureCustomer(store: Store, r: Customer): Promise<string>
 export async function ensureItem(store: Store, p: Product, incomeAccountId: string): Promise<string> {
   if (p.qboItemId) return p.qboItemId;
   const name = qboItemName(p.name, p.sku);
-  const found = await query<Ref>(store, `select * from Item where Name = ${qboQuote(name)}`);
+  const found = await query<Ref & { Active?: boolean }>(store, `select * from Item where Name = ${qboQuote(name)} and Active IN (true, false)`);
+  if (found[0] && found[0].Active === false) {
+    throw new QboError(`The item "${name}" is inactive in QuickBooks. Make it active in QuickBooks (or link this product to another item), then press Retry.`);
+  }
   let id = found[0]?.Id;
   if (!id) {
     const res = await qboRequest(store, "item", {

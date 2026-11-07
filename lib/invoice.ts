@@ -5,7 +5,7 @@ export type InvoiceLineInput = {
   itemId: string;
   description: string;
   qty: number;
-  unitPriceCents: number;
+  rate: number; // dollars, up to 5 decimals
   lineTotalCents: number;
 };
 
@@ -34,7 +34,7 @@ export function buildInvoicePayload(input: InvoiceInput) {
       SalesItemLineDetail: {
         ItemRef: { value: l.itemId },
         Qty: l.qty,
-        UnitPrice: l.unitPriceCents / 100,
+        UnitPrice: l.rate,
       },
     })),
   };
@@ -49,4 +49,17 @@ export function qboItemName(name: string, sku: string): string {
 /** Escapes a value for a QuickBooks query string literal. */
 export function qboQuote(v: string): string {
   return `'${v.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}'`;
+}
+
+/**
+ * Quantity and rate for QuickBooks when it counts in a different unit than the store sells in
+ * (e.g. sold by the case, counted in pounds: factor 40). QuickBooks requires Qty × UnitPrice to
+ * equal the line amount, so if the converted rate can't add up to the cent we keep the sold unit.
+ */
+export function qboLineQty(qtySold: number, factor: number, unitPriceCents: number, lineTotalCents: number) {
+  const plain = { qty: qtySold, rate: unitPriceCents / 100, converted: false };
+  if (!(factor > 0) || factor === 1) return plain;
+  const qty = Math.round(qtySold * factor * 10_000) / 10_000;
+  const rate = Math.round((unitPriceCents / 100 / factor) * 100_000) / 100_000;
+  return Math.round(qty * rate * 100) === lineTotalCents ? { qty, rate, converted: true } : plain;
 }

@@ -25,6 +25,7 @@ export async function listProducts(ctx: StoreCtx) {
     select: {
       id: true, sku: true, name: true, description: true, category: true, unit: true, unitKind: true,
       packCount: true, packAmount: true, packUnit: true, packSize: true, byWeight: true, priceCents: true, inStock: true, imageIds: true,
+      qboItemId: true, qboUnitFactor: true, qboUnitLabel: true,
     },
   });
 }
