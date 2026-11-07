@@ -14,7 +14,7 @@ beforeAll(async () => {
   b = await makeStore("routes-b");
 });
 
-const idsOf = (f: StoreFixture): Ids => ({ order: f.orderA.id, product: f.product.id, customer: f.customerA.id });
+const idsOf = (f: StoreFixture): Ids => ({ order: f.orderA.id, product: f.product.id, customer: f.customerA.id, staffUser: f.staff.id });
 
 async function load(file: string): Promise<Record<string, RouteHandler>> {
   return import(`../../app/api/s/[slug]/${file}`);
@@ -77,7 +77,7 @@ describe.each(ROUTES)("$method $file", (rc) => {
     const before = await snapshot(b.store.id);
     const res = await call(rc, "routes-a", idsOf(b), token, b);
     expect(await snapshot(b.store.id)).toBe(before);
-    if (rc.file.includes("[id]")) expect(res.status).toBe(404);
+    if (rc.file.includes("[id]") || rc.file.includes("[userId]")) expect(res.status).toBe(404);
   });
 
   it("allowed role of a → succeeds", async () => {

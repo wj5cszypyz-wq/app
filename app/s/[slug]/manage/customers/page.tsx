@@ -4,6 +4,7 @@ import { listCustomers } from "@/lib/data/customers";
 import { formatMoney } from "@/lib/money";
 import { MANAGE, requireStorePage } from "@/lib/scope";
 import { AddCustomer } from "./add-customer";
+import { ResendInvite } from "./resend-invite";
 
 export const metadata: Metadata = { title: "Customers" };
 
@@ -45,7 +46,8 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
                   </td>
                   <td className="hide-sm">
                     <div>{r.contactName}</div>
-                    <div className="dim" style={{ fontSize: 11.5 }}>{r.email}</div>
+                    <div className="dim" style={{ fontSize: 11.5, overflowWrap: "anywhere" }}>{r.email}</div>
+                    {!r.hasLogin && <div style={{ marginTop: 6 }}><ResendInvite customerId={r.id} /></div>}
                   </td>
                   <td className="right num">{r._count.orders}</td>
                   <td className="right num hide-sm">{formatMoney(r.spendCents)}</td>

@@ -1,9 +1,9 @@
 // The store's customers (businesses or people who buy) and their logins and special prices.
-import bcrypt from "bcryptjs";
 import { db } from "../db";
 import type { StoreCtx } from "../scope";
 import { DataError } from "./errors";
 import { asManager } from "./guard";
+import { inviteCustomerLogin } from "./invites";
 
 export async function listCustomers(ctx: StoreCtx) {
   const { storeId } = asManager(ctx);
@@ -14,6 +14,7 @@ export async function listCustomers(ctx: StoreCtx) {
       include: {
         _count: { select: { orders: true, prices: true } },
         orders: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+        memberships: { select: { id: true }, take: 1 },
       },
     }),
     db.order.groupBy({
@@ -23,7 +24,7 @@ export async function listCustomers(ctx: StoreCtx) {
     }),
   ]);
   const spend = new Map(totals.map((t) => [t.customerId, t._sum.subtotalCents ?? 0]));
-  return customers.map((c) => ({ ...c, spendCents: spend.get(c.id) ?? 0 }));
+  return customers.map(({ memberships, ...c }) => ({ ...c, hasLogin: memberships.length > 0, spendCents: spend.get(c.id) ?? 0 }));
 }
 
 /** One customer of this store with their special prices; null otherwise. */
@@ -39,44 +40,28 @@ export type NewCustomer = {
   email: string;
   phone: string;
   address: string;
-  password: string;
 };
 
-/**
- * Adds a customer and gives their contact a login for this store.
- * If the email already has a login (e.g. they buy from another store too), that person simply gains
- * access to this store and keeps their own password; the temporary password is not applied.
- */
-export async function createCustomerWithLogin(ctx: StoreCtx, input: NewCustomer) {
+/** Adds a customer and emails their contact an invite to sign in to this store. */
+export async function createCustomer(ctx: StoreCtx, input: NewCustomer) {
   const { storeId } = asManager(ctx);
   const email = input.email.trim().toLowerCase();
-  const existing = await db.user.findUnique({
-    where: { email },
-    include: { memberships: { where: { storeId }, select: { id: true } } },
-  });
-  if (existing && existing.memberships.length > 0) throw new DataError("This email already has access to this store.");
+  const taken = await db.membership.findFirst({ where: { storeId, user: { email } }, select: { id: true } });
+  const pending = await db.customer.findFirst({ where: { storeId, email }, select: { id: true } });
+  if (taken || pending) throw new DataError("This email already has access to this store.");
 
-  return db.$transaction(async (tx) => {
-    const customer = await tx.customer.create({
-      data: {
-        storeId,
-        name: input.name,
-        contactName: input.contactName,
-        email,
-        phone: input.phone || null,
-        address: input.address || null,
-      },
-    });
-    const userId =
-      existing?.id ??
-      (
-        await tx.user.create({
-          data: { email, name: input.contactName, passwordHash: await bcrypt.hash(input.password, 10) },
-        })
-      ).id;
-    await tx.membership.create({ data: { userId, storeId, role: "buyer", customerId: customer.id } });
-    return { id: customer.id, existingLogin: Boolean(existing) };
+  const customer = await db.customer.create({
+    data: {
+      storeId,
+      name: input.name,
+      contactName: input.contactName,
+      email,
+      phone: input.phone || null,
+      address: input.address || null,
+    },
   });
+  await inviteCustomerLogin(ctx, customer.id);
+  return { id: customer.id };
 }
 
 /**

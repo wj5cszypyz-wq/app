@@ -113,14 +113,13 @@ describe("customers", () => {
     expect(await getCustomer(ownerA, b.customerA.id)).toBeNull();
   });
 
-  it("createCustomerWithLogin: same email twice in one store errors; other store gets a second membership", async () => {
-    const { createCustomerWithLogin } = await import("../../lib/data/customers");
-    const input = { name: "Shared Co", contactName: "Pat", email: "pat-shared@test.local", phone: "", address: "", password: "temp-password-1" };
-    await createCustomerWithLogin(ownerA, input);
-    await expect(createCustomerWithLogin(ownerA, input)).rejects.toThrow("This email already has access to this store.");
-    await createCustomerWithLogin(ctx(b, "owner", b.owner.id), { ...input, password: "different-pass-2" });
-    const user = await db.user.findUniqueOrThrow({ where: { email: "pat-shared@test.local" }, include: { memberships: true } });
-    expect(user.memberships.map((m) => m.storeId).sort()).toEqual([a.store.id, b.store.id].sort());
+  it("createCustomer: same email twice in one store errors; another store may add it too", async () => {
+    const { createCustomer } = await import("../../lib/data/customers");
+    const input = { name: "Shared Co", contactName: "Pat", email: "pat-shared@test.local", phone: "", address: "" };
+    await createCustomer(ownerA, input);
+    await expect(createCustomer(ownerA, input)).rejects.toThrow("This email already has access to this store.");
+    await createCustomer(ctx(b, "owner", b.owner.id), input);
+    expect(await db.customer.count({ where: { email: "pat-shared@test.local" } })).toBe(2);
   });
 });
 

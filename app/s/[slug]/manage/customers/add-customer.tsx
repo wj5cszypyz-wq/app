@@ -7,7 +7,7 @@ import { Spinner } from "@/components/status";
 import { useToast } from "@/components/toast";
 import { useStorePaths } from "@/components/use-store";
 
-const EMPTY = { name: "", contactName: "", email: "", phone: "", address: "", password: "" };
+const EMPTY = { name: "", contactName: "", email: "", phone: "", address: "" };
 
 export function AddCustomer() {
   const router = useRouter();
@@ -16,7 +16,6 @@ export function AddCustomer() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState(EMPTY);
-  const [showPw, setShowPw] = useState(false);
   const set = (k: keyof typeof EMPTY) => (e: { target: { value: string } }) => setForm({ ...form, [k]: e.target.value });
 
   async function submit(e: FormEvent) {
@@ -33,9 +32,7 @@ export function AddCustomer() {
     notify(
       "success",
       `${form.name} added`,
-      json.existingLogin
-        ? `${form.email} already has a login, so they keep their own password and now see your store too.`
-        : `They can sign in with ${form.email}.`,
+      `Invite emailed to ${form.email.trim().toLowerCase()}.`,
     );
     setForm(EMPTY);
     setOpen(false);
@@ -61,18 +58,11 @@ export function AddCustomer() {
         <div className="field"><label>Contact name</label><input className="input" required value={form.contactName} onChange={set("contactName")} /></div>
         <div className="field"><label>Login email</label><input className="input" type="email" required value={form.email} onChange={set("email")} /></div>
         <div className="field"><label>Phone</label><input className="input" value={form.phone} onChange={set("phone")} /></div>
-        <div className="field" style={{ gridColumn: "span 2" }}><label>Delivery address</label><input className="input" value={form.address} onChange={set("address")} /></div>
-        <div className="field">
-          <label>Temporary password (8+ characters)</label>
-          <div className="row" style={{ gap: 6 }}>
-            <input className="input" type={showPw ? "text" : "password"} minLength={8} maxLength={200} required value={form.password} onChange={set("password")} autoComplete="new-password" />
-            <button type="button" className="btn btn-sm" onClick={() => setShowPw((v) => !v)}>{showPw ? "Hide" : "Show"}</button>
-          </div>
-        </div>
+        <div className="field" style={{ gridColumn: "span 2" }}><label>Address</label><input className="input" value={form.address} onChange={set("address")} /></div>
       </div>
       <div className="row" style={{ justifyContent: "flex-end" }}>
-        <span className="muted grow" style={{ fontSize: 12.5 }}>Give the customer this email and password. They'll see your catalog with their prices.</span>
-        <button className="btn btn-primary" disabled={busy}>{busy ? <Spinner /> : "Create account"}</button>
+        <span className="muted grow" style={{ fontSize: 12.5 }}>We'll email them an invite to set up their login. They'll see your catalog with their prices.</span>
+        <button className="btn btn-primary" disabled={busy}>{busy ? <Spinner /> : "Add and send invite"}</button>
       </div>
     </form>
   );

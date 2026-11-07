@@ -13,6 +13,7 @@ const NAV = [
   { href: "/orders", label: "All orders", icon: IconList },
   { href: "/catalog", label: "Products", icon: IconBox },
   { href: "/customers", label: "Customers", icon: IconUsers },
+  { href: "/team", label: "Team", icon: IconUsers },
   { href: "/settings", label: "QuickBooks", icon: IconLink },
 ];
 
