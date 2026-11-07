@@ -29,7 +29,7 @@ export function BuyerBar({ customer, store }: { customer: string; store: string 
         </Link>
       </nav>
       <div className="row" style={{ marginLeft: "auto" }}>
-        <span className="muted hide-sm" style={{ fontSize: 13 }}>{customer}</span>
+        <Link href="/account" className="muted hide-sm" style={{ fontSize: 13 }} title="Your account">{customer}</Link>
         <SignOutButton />
       </div>
     </header>

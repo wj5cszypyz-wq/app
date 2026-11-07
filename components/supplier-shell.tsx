@@ -61,7 +61,7 @@ export function SupplierShell(props: {
           </Link>
           <div className="user-row">
             <span className="avatar">{initials}</span>
-            <span className="grow user-meta" style={{ fontSize: 13 }}>{props.userName}</span>
+            <Link href="/account" className="grow user-meta" style={{ fontSize: 13 }} title="Your account">{props.userName}</Link>
             <SignOutButton />
           </div>
         </div>
